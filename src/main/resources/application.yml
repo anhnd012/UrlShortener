@@ -1,0 +1,16 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5433/db_url_shortener
+    username: admin
+    password: 12345678x@X
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

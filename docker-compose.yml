@@ -1,0 +1,27 @@
+services:
+
+  postgres:
+    image: postgres:16
+
+    container_name: postgres-db
+
+    environment:
+      POSTGRES_DB: db_url_shortener
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: 12345678x@X
+
+    ports:
+      - "5433:5432"
+
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d db_url_shortener"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  postgres-data:
+
