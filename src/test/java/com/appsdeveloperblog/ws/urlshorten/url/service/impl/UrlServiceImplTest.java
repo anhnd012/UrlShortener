@@ -1,0 +1,100 @@
+package com.appsdeveloperblog.ws.urlshorten.url.service.impl;
+
+import com.appsdeveloperblog.ws.urlshorten.url.entity.ShortUrl;
+import com.appsdeveloperblog.ws.urlshorten.url.exception.InvalidUrlException;
+import com.appsdeveloperblog.ws.urlshorten.url.model.enums.UrlStatus;
+import com.appsdeveloperblog.ws.urlshorten.url.model.request.CreateUrlRequest;
+import com.appsdeveloperblog.ws.urlshorten.url.model.response.CreateUrlResponse;
+import com.appsdeveloperblog.ws.urlshorten.url.repository.UrlRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+
+import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+
+class UrlServiceImplTest {
+
+    private UrlRepository urlRepository;
+    private UrlServiceImpl urlService;
+
+    @BeforeEach
+    void setUp() {
+        urlRepository = mock(UrlRepository.class);
+        urlService = new UrlServiceImpl(urlRepository);
+        ReflectionTestUtils.setField(urlService, "baseUrl", "https://short.ly");
+    }
+
+    @Test
+    void createShortUrlWhenLongUrlIsValidCreatesActiveShortUrlAndPersistsIt() {
+        CreateUrlRequest request = createRequest("https://www.google.com/search?q=spring+boot");
+
+        CreateUrlResponse response = urlService.createShortUrl(request);
+
+        ArgumentCaptor<ShortUrl> shortUrlCaptor = ArgumentCaptor.forClass(ShortUrl.class);
+        verify(urlRepository).saveAndFlush(shortUrlCaptor.capture());
+        ShortUrl savedShortUrl = shortUrlCaptor.getValue();
+
+        assertAll(
+                () -> assertNotNull(response.getShortCode(), "shortCode should not be null"),
+                () -> assertEquals(8, response.getShortCode().length(), "shortCode length should be 8"),
+                () -> assertTrue(response.getShortCode().matches("[0-9a-zA-Z]{8}"), "shortCode should be Base62 with 8 chars"),
+                () -> assertEquals("https://short.ly/" + response.getShortCode(), response.getShortUrl(), "shortUrl should use base URL + shortCode"),
+                () -> assertEquals(UrlStatus.ACTIVE.name(), response.getStatus(), "response status should be ACTIVE"),
+                () -> assertEquals(response.getShortCode(), savedShortUrl.getShortCode(), "saved shortCode should match response shortCode"),
+                () -> assertEquals("https://www.google.com/search?q=spring+boot", savedShortUrl.getLongUrl(), "saved longUrl should match request"),
+                () -> assertEquals(UrlStatus.ACTIVE, savedShortUrl.getStatus(), "saved status should be ACTIVE"),
+                () -> assertNotNull(savedShortUrl.getValidFrom(), "validFrom should not be null"),
+                () -> assertNotNull(savedShortUrl.getExpiresAt(), "expiresAt should not be null"),
+                () -> assertEquals(savedShortUrl.getValidFrom().plus(30, ChronoUnit.DAYS), savedShortUrl.getExpiresAt(), "expiresAt should be validFrom + 30 days"),
+                () -> assertEquals(savedShortUrl.getValidFrom(), Instant.parse(response.getValidFrom()), "response validFrom should match saved validFrom"),
+                () -> assertEquals(savedShortUrl.getExpiresAt(), Instant.parse(response.getExpiresAt()), "response expiresAt should match saved expiresAt")
+        );
+    }
+
+    @Test
+    void createShortUrlWhenLongUrlHasNoProtocolNormalizesToHttpsBeforePersisting() {
+        CreateUrlRequest request = createRequest("jakob.com/java-date-time");
+
+        CreateUrlResponse response = urlService.createShortUrl(request);
+
+        ArgumentCaptor<ShortUrl> shortUrlCaptor = ArgumentCaptor.forClass(ShortUrl.class);
+        verify(urlRepository).saveAndFlush(shortUrlCaptor.capture());
+        ShortUrl savedShortUrl = shortUrlCaptor.getValue();
+
+        assertAll(
+                () -> assertEquals("https://jakob.com/java-date-time", savedShortUrl.getLongUrl()),
+                () -> assertEquals("https://short.ly/" + response.getShortCode(), response.getShortUrl())
+        );
+    }
+
+
+    @Test
+    void createShortUrlWhenLongUrlIsInvalidThrowsExceptionAndDoesNotPersist() {
+        CreateUrlRequest request = createRequest("abc def %%%");
+
+        InvalidUrlException exception = assertThrows(
+                InvalidUrlException.class,
+                () -> urlService.createShortUrl(request)
+        );
+
+        assertEquals("Url is invalid: " + request.getLongUrl(), exception.getMessage());
+        verify(urlRepository, never()).save(org.mockito.ArgumentMatchers.any(ShortUrl.class));
+    }
+
+    private CreateUrlRequest createRequest(String longUrl) {
+        CreateUrlRequest request = new CreateUrlRequest();
+        request.setLongUrl(longUrl);
+        return request;
+    }
+}
