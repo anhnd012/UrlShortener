@@ -13,6 +13,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -22,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class UrlServiceImplTest {
 
@@ -96,5 +98,63 @@ class UrlServiceImplTest {
         CreateUrlRequest request = new CreateUrlRequest();
         request.setLongUrl(longUrl);
         return request;
+    }
+
+    @Test
+    void redirectShortUrlWhenShortCodeIsValidRedirectLongUrlApplication() {
+        String shortCode = "aB12xYz9";
+        ShortUrl shortUrl = createShortUrl(shortCode, "https://www.youtube.com/watch?v=spring", UrlStatus.ACTIVE, Instant.now().plus(30, ChronoUnit.DAYS));
+        when(urlRepository.getByShortCode(shortCode)).thenReturn(shortUrl);
+
+        Optional<String> response = urlService.redirectShortUrl(shortCode);
+
+        assertAll(
+                () -> assertEquals("https://www.youtube.com/watch?v=spring", response.get())
+        );
+    }
+
+    @Test
+    void redirectShortUrlWhenShortCodeDoesNotExistReturnsInvalid() {
+        String shortCode = "notFound";
+        when(urlRepository.getByShortCode(shortCode)).thenReturn(null);
+
+        Optional<String> response = urlService.redirectShortUrl(shortCode);
+
+        assertAll(
+                () -> assertTrue(response.isEmpty())
+        );
+    }
+
+    @Test
+    void redirectShortUrlWhenShortUrlIsExpiredReturnsInvalid() {
+        String shortCode = "old12345";
+        ShortUrl shortUrl = createShortUrl(shortCode, "https://www.youtube.com/watch?v=spring", UrlStatus.ACTIVE, Instant.now().minus(1, ChronoUnit.SECONDS));
+        when(urlRepository.getByShortCode(shortCode)).thenReturn(shortUrl);
+
+        Optional<String> response = urlService.redirectShortUrl(shortCode);
+
+        assertTrue(response.isEmpty());
+    }
+
+    @Test
+    void redirectShortUrlWhenShortUrlIsDisabledReturnsInvalid() {
+        String shortCode = "off12345";
+        ShortUrl shortUrl = createShortUrl(shortCode, "https://www.youtube.com/watch?v=spring", UrlStatus.DISABLED, Instant.now().plus(30, ChronoUnit.DAYS));
+        when(urlRepository.getByShortCode(shortCode)).thenReturn(shortUrl);
+
+        Optional<String> response = urlService.redirectShortUrl(shortCode);
+
+        assertTrue(response.isEmpty());
+    }
+
+    private ShortUrl createShortUrl(String shortCode, String longUrl, UrlStatus status, Instant expiresAt) {
+        ShortUrl shortUrl = new ShortUrl();
+        shortUrl.setShortCode(shortCode);
+        shortUrl.setLongUrl(longUrl);
+        shortUrl.setStatus(status);
+        shortUrl.setValidFrom(Instant.now());
+        shortUrl.setExpiresAt(expiresAt);
+
+        return shortUrl;
     }
 }
