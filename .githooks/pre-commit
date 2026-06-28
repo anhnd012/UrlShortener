@@ -4,5 +4,5 @@ echo "Checking Google Java formatting..."
 if [ "$OS" = "Windows_NT" ]; then
   cmd.exe //c mvnw.cmd --quiet spotless:check
 else
-  ./mvnw --quiet spotless:check
+  sh ./mvnw --quiet spotless:check
 fi

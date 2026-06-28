@@ -40,4 +40,4 @@ jobs:
           cache: maven
 
       - name: Verify
-        run: ./mvnw --batch-mode verify
+        run: sh ./mvnw --batch-mode verify
