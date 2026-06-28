@@ -7,11 +7,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.appsdeveloperblog.ws.urlshorten.url.entity.ShortUrl;
 import com.appsdeveloperblog.ws.urlshorten.url.exception.InvalidUrlException;
+import com.appsdeveloperblog.ws.urlshorten.url.exception.UrlRetryException;
 import com.appsdeveloperblog.ws.urlshorten.url.model.enums.UrlStatus;
 import com.appsdeveloperblog.ws.urlshorten.url.model.request.CreateUrlRequest;
 import com.appsdeveloperblog.ws.urlshorten.url.model.response.CreateUrlResponse;
@@ -22,6 +24,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 class UrlServiceImplTest {
@@ -117,6 +120,42 @@ class UrlServiceImplTest {
 
     assertEquals("Url is invalid: " + request.getLongUrl(), exception.getMessage());
     verify(urlRepository, never()).save(org.mockito.ArgumentMatchers.any(ShortUrl.class));
+  }
+
+  @Test
+  void createShortUrlWhenLongUrlExceedsMaximumLengthRejectsIt() {
+    CreateUrlRequest request = createRequest("https://example.com/" + "a".repeat(2049));
+
+    assertThrows(InvalidUrlException.class, () -> urlService.createShortUrl(request));
+
+    verify(urlRepository, never()).saveAndFlush(org.mockito.ArgumentMatchers.any(ShortUrl.class));
+  }
+
+  @Test
+  void createShortUrlWhenShortCodeCollidesRetriesAndSucceeds() {
+    CreateUrlRequest request = createRequest("https://example.com/articles/testing");
+    when(urlRepository.saveAndFlush(org.mockito.ArgumentMatchers.any(ShortUrl.class)))
+        .thenThrow(new DataIntegrityViolationException("short code collision"))
+        .thenAnswer(invocation -> invocation.getArgument(0));
+
+    CreateUrlResponse response = urlService.createShortUrl(request);
+
+    assertNotNull(response);
+    verify(urlRepository, times(2)).saveAndFlush(org.mockito.ArgumentMatchers.any(ShortUrl.class));
+  }
+
+  @Test
+  void createShortUrlWhenEveryShortCodeCollidesThrowsRetryException() {
+    CreateUrlRequest request = createRequest("https://example.com/articles/testing");
+    when(urlRepository.saveAndFlush(org.mockito.ArgumentMatchers.any(ShortUrl.class)))
+        .thenThrow(new DataIntegrityViolationException("short code collision"));
+
+    UrlRetryException exception =
+        assertThrows(UrlRetryException.class, () -> urlService.createShortUrl(request));
+
+    assertEquals(
+        "Can not create short url based on: " + request.getLongUrl(), exception.getMessage());
+    verify(urlRepository, times(5)).saveAndFlush(org.mockito.ArgumentMatchers.any(ShortUrl.class));
   }
 
   private CreateUrlRequest createRequest(String longUrl) {

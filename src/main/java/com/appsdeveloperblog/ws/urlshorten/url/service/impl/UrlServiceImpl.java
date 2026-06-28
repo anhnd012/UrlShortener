@@ -111,11 +111,7 @@ public class UrlServiceImpl implements UrlService {
   private String validateAndNormalize(CreateUrlRequest request) {
     String normalizedLongUrl = normalizeUrl(request.getLongUrl());
     if (normalizedLongUrl.length() > MAX_ALLOWED_CHARACTERS) {
-      throw new IllegalArgumentException(
-          "Url"
-              + normalizedLongUrl
-              + "is longer then maximum allowed characters: "
-              + MAX_ALLOWED_CHARACTERS);
+      throw new InvalidUrlException(request.getLongUrl());
     }
 
     try {
