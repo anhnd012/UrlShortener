@@ -1,0 +1,43 @@
+name: Verify
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: db_url_shortener
+          POSTGRES_USER: admin
+          POSTGRES_PASSWORD: 12345678x@X
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U admin -d db_url_shortener"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Verify
+        run: sh ./mvnw --batch-mode verify

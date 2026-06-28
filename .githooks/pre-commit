@@ -1,0 +1,8 @@
+#!/bin/sh
+
+echo "Checking Google Java formatting..."
+if [ "$OS" = "Windows_NT" ]; then
+  cmd.exe //c mvnw.cmd --quiet spotless:check
+else
+  sh ./mvnw --quiet spotless:check
+fi
