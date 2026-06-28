@@ -14,20 +14,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_DB: db_url_shortener
-          POSTGRES_USER: admin
-          POSTGRES_PASSWORD: 12345678x@X
-        ports:
-          - 5433:5432
-        options: >-
-          --health-cmd "pg_isready -U admin -d db_url_shortener"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+    timeout-minutes: 15
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -41,3 +28,11 @@ jobs:
 
       - name: Verify
         run: sh ./mvnw --batch-mode verify
+
+      - name: Upload JaCoCo report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: target/site/jacoco/
+          if-no-files-found: ignore
