@@ -4,6 +4,6 @@ import lombok.Data;
 
 @Data
 public class RedirectShortUrlResponse {
-    private String longUrl;
-    private String status;
+  private String longUrl;
+  private String status;
 }

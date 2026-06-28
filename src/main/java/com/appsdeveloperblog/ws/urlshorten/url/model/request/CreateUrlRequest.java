@@ -6,6 +6,6 @@ import lombok.Data;
 @Data
 public class CreateUrlRequest {
 
-    @NotBlank(message = "longUrl must not be blank")
-    String longUrl;
+  @NotBlank(message = "longUrl must not be blank")
+  String longUrl;
 }

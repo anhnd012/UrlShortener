@@ -6,9 +6,9 @@ import lombok.Data;
 @Data
 @Builder
 public class CreateUrlResponse {
-    private String shortCode;
-    private String shortUrl;
-    private String status;
-    private String validFrom;
-    private String expiresAt;
+  private String shortCode;
+  private String shortUrl;
+  private String status;
+  private String validFrom;
+  private String expiresAt;
 }

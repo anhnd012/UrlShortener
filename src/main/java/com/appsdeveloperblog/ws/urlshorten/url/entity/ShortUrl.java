@@ -8,30 +8,28 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import java.time.Instant;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.time.Instant;
 
 @Entity
 @Getter
 @Setter
 @Table(
-        uniqueConstraints = {
-                @UniqueConstraint(name = "uq_short_url_short_code", columnNames = "short_code")
-        }
-)
+    uniqueConstraints = {
+      @UniqueConstraint(name = "uq_short_url_short_code", columnNames = "short_code")
+    })
 public class ShortUrl extends BaseEntity {
 
-    @Column(nullable = false, length = 8)
-    private String shortCode;
+  @Column(nullable = false, length = 8)
+  private String shortCode;
 
-    private String longUrl;
+  private String longUrl;
 
-    @Enumerated(EnumType.STRING)
-    private UrlStatus status;
+  @Enumerated(EnumType.STRING)
+  private UrlStatus status;
 
-    private Instant validFrom;
+  private Instant validFrom;
 
-    private Instant expiresAt;
+  private Instant expiresAt;
 }

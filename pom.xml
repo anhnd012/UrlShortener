@@ -28,6 +28,8 @@
     </scm>
     <properties>
         <java.version>21</java.version>
+        <google-java-format.version>1.35.0</google-java-format.version>
+        <spotless.version>3.7.0</spotless.version>
     </properties>
     <dependencies>
         <dependency>
@@ -90,6 +92,28 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>com.diffplug.spotless</groupId>
+                <artifactId>spotless-maven-plugin</artifactId>
+                <version>${spotless.version}</version>
+                <configuration>
+                    <java>
+                        <googleJavaFormat>
+                            <version>${google-java-format.version}</version>
+                            <style>GOOGLE</style>
+                        </googleJavaFormat>
+                    </java>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>check-google-java-style</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
