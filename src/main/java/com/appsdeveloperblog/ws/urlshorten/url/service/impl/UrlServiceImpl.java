@@ -6,9 +6,9 @@ import com.appsdeveloperblog.ws.urlshorten.url.exception.UrlRetryException;
 import com.appsdeveloperblog.ws.urlshorten.url.model.enums.UrlStatus;
 import com.appsdeveloperblog.ws.urlshorten.url.model.request.CreateUrlRequest;
 import com.appsdeveloperblog.ws.urlshorten.url.model.response.CreateUrlResponse;
+import com.appsdeveloperblog.ws.urlshorten.url.model.response.RedirectShortUrlResponse;
 import com.appsdeveloperblog.ws.urlshorten.url.repository.UrlRepository;
 import com.appsdeveloperblog.ws.urlshorten.url.service.UrlService;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -18,6 +18,7 @@ import org.springframework.util.StringUtils;
 import java.net.URI;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Optional;
 import java.util.Random;
 
 @Service
@@ -127,5 +128,18 @@ public class UrlServiceImpl implements UrlService {
         return normalizedLongUrl;
     }
 
+    @Override
+    public Optional<String> redirectShortUrl(String shortCode) {
+        ShortUrl shortUrl = urlRepository.getByShortCode(shortCode);
+        RedirectShortUrlResponse response = new RedirectShortUrlResponse();
+
+        if (shortUrl == null
+                || shortUrl.getStatus() != UrlStatus.ACTIVE
+                || !shortUrl.getExpiresAt().isAfter(Instant.now())) {
+            return Optional.empty();
+        }
+
+        return Optional.of(shortUrl.getLongUrl());
+    }
 
 }
