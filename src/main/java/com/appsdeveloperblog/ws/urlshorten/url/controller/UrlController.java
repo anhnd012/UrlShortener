@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class UrlController {
   private final UrlService urlService;
 
-  @PostMapping("/urls")
+  @PostMapping({"/urls", "/api/v1/urls"})
   public ResponseEntity createShortUrl(@RequestBody @Valid CreateUrlRequest request) {
     CreateUrlResponse response = urlService.createShortUrl(request);
     return new ResponseEntity(response, HttpStatus.CREATED);

@@ -7,6 +7,7 @@ import com.appsdeveloperblog.ws.urlshorten.url.model.enums.UrlStatus;
 import com.appsdeveloperblog.ws.urlshorten.url.model.request.CreateUrlRequest;
 import com.appsdeveloperblog.ws.urlshorten.url.model.response.CreateUrlResponse;
 import com.appsdeveloperblog.ws.urlshorten.url.repository.UrlRepository;
+import com.appsdeveloperblog.ws.urlshorten.url.service.RedirectCacheService;
 import com.appsdeveloperblog.ws.urlshorten.url.service.UrlService;
 import java.net.URI;
 import java.time.Instant;
@@ -27,9 +28,11 @@ public class UrlServiceImpl implements UrlService {
   private static final String BASE62 =
       "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
   private final int MAX_RETRY = 5;
-
+  private final RedirectCacheService redirectCacheService;
   @Value("${app.base-url}")
   private String baseUrl;
+
+
 
   @Override
   public CreateUrlResponse createShortUrl(CreateUrlRequest request) {
@@ -55,7 +58,7 @@ public class UrlServiceImpl implements UrlService {
         }
       }
     }
-
+    
     throw new UrlRetryException(request.getLongUrl());
   }
 
@@ -128,6 +131,10 @@ public class UrlServiceImpl implements UrlService {
 
   @Override
   public Optional<String> redirectShortUrl(String shortCode) {
+    Optional<String> cachedLongUrl = redirectCacheService.getLongUrl(shortCode);
+    if(cachedLongUrl.isPresent()) {
+      return cachedLongUrl;
+    }
     ShortUrl shortUrl = urlRepository.getByShortCode(shortCode);
 
     if (shortUrl == null
@@ -135,7 +142,7 @@ public class UrlServiceImpl implements UrlService {
         || !shortUrl.getExpiresAt().isAfter(Instant.now())) {
       return Optional.empty();
     }
-
+    redirectCacheService.put(shortCode, shortUrl.getLongUrl(), shortUrl.getExpiresAt().toEpochMilli());
     return Optional.of(shortUrl.getLongUrl());
   }
 }
