@@ -1,4 +1,5 @@
 package com.appsdeveloperblog.ws.urlshorten.url.service;
+
 import java.util.Optional;
 
 public interface RedirectCacheService {

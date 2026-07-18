@@ -33,8 +33,6 @@ public class UrlServiceImpl implements UrlService {
   @Value("${app.base-url}")
   private String baseUrl;
 
-
-
   @Override
   public CreateUrlResponse createShortUrl(CreateUrlRequest request) {
     String normalizedLongUrl = validateAndNormalize(request);
@@ -59,7 +57,7 @@ public class UrlServiceImpl implements UrlService {
         }
       }
     }
-    
+
     throw new UrlRetryException(request.getLongUrl());
   }
 
@@ -133,7 +131,7 @@ public class UrlServiceImpl implements UrlService {
   @Override
   public Optional<String> redirectShortUrl(String shortCode) {
     Optional<String> cachedLongUrl = redirectCacheService.getLongUrl(shortCode);
-    if(cachedLongUrl.isPresent()) {
+    if (cachedLongUrl.isPresent()) {
       return cachedLongUrl;
     }
     ShortUrl shortUrl = urlRepository.getByShortCode(shortCode);
@@ -143,7 +141,8 @@ public class UrlServiceImpl implements UrlService {
         || !shortUrl.getExpiresAt().isAfter(Instant.now())) {
       return Optional.empty();
     }
-    redirectCacheService.put(shortCode, shortUrl.getLongUrl(), shortUrl.getExpiresAt().toEpochMilli());
+    redirectCacheService.put(
+        shortCode, shortUrl.getLongUrl(), shortUrl.getExpiresAt().toEpochMilli());
     return Optional.of(shortUrl.getLongUrl());
   }
 }

@@ -18,11 +18,10 @@ import com.appsdeveloperblog.ws.urlshorten.url.model.enums.UrlStatus;
 import com.appsdeveloperblog.ws.urlshorten.url.model.request.CreateUrlRequest;
 import com.appsdeveloperblog.ws.urlshorten.url.model.response.CreateUrlResponse;
 import com.appsdeveloperblog.ws.urlshorten.url.repository.UrlRepository;
+import com.appsdeveloperblog.ws.urlshorten.url.service.RedirectCacheService;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
-
-import com.appsdeveloperblog.ws.urlshorten.url.service.RedirectCacheService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
