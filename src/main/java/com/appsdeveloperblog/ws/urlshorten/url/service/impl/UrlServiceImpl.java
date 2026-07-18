@@ -24,11 +24,12 @@ import org.springframework.util.StringUtils;
 @RequiredArgsConstructor
 public class UrlServiceImpl implements UrlService {
   private final UrlRepository urlRepository;
-  private final Integer MAX_ALLOWED_CHARACTERS = 2048;
+  private static final Integer MAX_ALLOWED_CHARACTERS = 2048;
   private static final String BASE62 =
       "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  private final int MAX_RETRY = 5;
+  private static final int MAX_RETRY = 5;
   private final RedirectCacheService redirectCacheService;
+
   @Value("${app.base-url}")
   private String baseUrl;
 

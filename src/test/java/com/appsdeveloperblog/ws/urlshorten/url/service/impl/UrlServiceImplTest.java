@@ -21,6 +21,8 @@ import com.appsdeveloperblog.ws.urlshorten.url.repository.UrlRepository;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
+
+import com.appsdeveloperblog.ws.urlshorten.url.service.RedirectCacheService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -31,11 +33,13 @@ class UrlServiceImplTest {
 
   private UrlRepository urlRepository;
   private UrlServiceImpl urlService;
+  private RedirectCacheService redirectCacheService;
 
   @BeforeEach
   void setUp() {
     urlRepository = mock(UrlRepository.class);
-    urlService = new UrlServiceImpl(urlRepository);
+    redirectCacheService = mock(RedirectCacheService.class);
+    urlService = new UrlServiceImpl(urlRepository, redirectCacheService);
     ReflectionTestUtils.setField(urlService, "baseUrl", "https://short.ly");
   }
 
