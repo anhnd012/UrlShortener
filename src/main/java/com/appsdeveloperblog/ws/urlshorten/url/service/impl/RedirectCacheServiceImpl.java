@@ -54,7 +54,7 @@ public class RedirectCacheServiceImpl implements RedirectCacheService {
   @Override
   public Optional<String> getLongUrl(String shortCode) {
     // Logic to retrieve the longUrl for the given shortCode from cache
-    if (StringUtils.hasText(shortCode)) {
+    if (!StringUtils.hasText(shortCode)) {
       return Optional.empty();
     }
     String longUrl;

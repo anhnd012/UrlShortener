@@ -24,6 +24,8 @@ import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -115,6 +117,34 @@ class UrlServiceImplTest {
   }
 
   @Test
+  void createShortUrlWhenLongUrlUsesHttpKeepsOriginalProtocol() {
+    CreateUrlRequest request = createRequest("http://example.com/article");
+
+    urlService.createShortUrl(request);
+
+    ArgumentCaptor<ShortUrl> shortUrlCaptor = ArgumentCaptor.forClass(ShortUrl.class);
+    verify(urlRepository).saveAndFlush(shortUrlCaptor.capture());
+    assertEquals("http://example.com/article", shortUrlCaptor.getValue().getLongUrl());
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      strings = {
+        "https://example.com",
+        "http://localhost/article",
+        "http://127.0.0.1/article",
+        "http://192.168.1.10/article",
+        "http://10.0.0.1/article"
+      })
+  void createShortUrlWhenUrlIsNotPublicOrHasNoPathRejectsIt(String longUrl) {
+    CreateUrlRequest request = createRequest(longUrl);
+
+    assertThrows(InvalidUrlException.class, () -> urlService.createShortUrl(request));
+
+    verify(urlRepository, never()).saveAndFlush(org.mockito.ArgumentMatchers.any(ShortUrl.class));
+  }
+
+  @Test
   void createShortUrlWhenLongUrlIsInvalidThrowsExceptionAndDoesNotPersist() {
     CreateUrlRequest request = createRequest("abc def %%%");
 
@@ -181,6 +211,18 @@ class UrlServiceImplTest {
     Optional<String> response = urlService.redirectShortUrl(shortCode);
 
     assertAll(() -> assertEquals("https://www.youtube.com/watch?v=spring", response.get()));
+  }
+
+  @Test
+  void redirectShortUrlWhenCacheContainsUrlDoesNotQueryDatabase() {
+    String shortCode = "aB12xYz9";
+    when(redirectCacheService.getLongUrl(shortCode))
+        .thenReturn(Optional.of("https://example.com/cached"));
+
+    Optional<String> response = urlService.redirectShortUrl(shortCode);
+
+    assertEquals(Optional.of("https://example.com/cached"), response);
+    verify(urlRepository, never()).getByShortCode(shortCode);
   }
 
   @Test
