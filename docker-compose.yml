@@ -22,6 +22,26 @@ services:
       timeout: 5s
       retries: 3
 
+  redis:
+    image: redis:7.4-alpine
+
+    container_name: redis-cache
+
+    ports:
+      - "6379:6379"
+
+    volumes:
+      - redis-data:/data
+
+    command: ["redis-server", "--appendonly", "yes"]
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 1s
+      retries: 3
+
 volumes:
   postgres-data:
+  redis-data:
 

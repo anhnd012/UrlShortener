@@ -18,6 +18,7 @@ import com.appsdeveloperblog.ws.urlshorten.url.model.enums.UrlStatus;
 import com.appsdeveloperblog.ws.urlshorten.url.model.request.CreateUrlRequest;
 import com.appsdeveloperblog.ws.urlshorten.url.model.response.CreateUrlResponse;
 import com.appsdeveloperblog.ws.urlshorten.url.repository.UrlRepository;
+import com.appsdeveloperblog.ws.urlshorten.url.service.RedirectCacheService;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
@@ -31,11 +32,13 @@ class UrlServiceImplTest {
 
   private UrlRepository urlRepository;
   private UrlServiceImpl urlService;
+  private RedirectCacheService redirectCacheService;
 
   @BeforeEach
   void setUp() {
     urlRepository = mock(UrlRepository.class);
-    urlService = new UrlServiceImpl(urlRepository);
+    redirectCacheService = mock(RedirectCacheService.class);
+    urlService = new UrlServiceImpl(urlRepository, redirectCacheService);
     ReflectionTestUtils.setField(urlService, "baseUrl", "https://short.ly");
   }
 

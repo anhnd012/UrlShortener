@@ -1,0 +1,86 @@
+2026-07-12T20:03:14.410+07:00  INFO 15572 --- [restartedMain] c.a.ws.urlshorten.UrlShortenApplication  : Starting UrlShortenApplication using Java 21.0.3 with PID 15572 (D:\API\PetProjects\URL Shortener\Backend\target\classes started by Admin in D:\API\PetProjects\URL Shortener\Backend)
+2026-07-12T20:03:14.412+07:00  INFO 15572 --- [restartedMain] c.a.ws.urlshorten.UrlShortenApplication  : No active profile set, falling back to 1 default profile: "default"
+2026-07-12T20:03:14.900+07:00  INFO 15572 --- [restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-07-12T20:03:14.947+07:00  INFO 15572 --- [restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 41 ms. Found 1 JPA repository interface.
+2026-07-12T20:03:15.280+07:00  INFO 15572 --- [restartedMain] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 10689 (http)
+2026-07-12T20:03:15.351+07:00  INFO 15572 --- [restartedMain] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 935 ms
+2026-07-12T20:03:15.469+07:00  INFO 15572 --- [restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Starting...
+2026-07-12T20:03:15.532+07:00  INFO 15572 --- [restartedMain] com.zaxxer.hikari.pool.HikariPool        : HikariPool-2 - Added connection org.postgresql.jdbc.PgConnection@7974998e
+2026-07-12T20:03:15.534+07:00  INFO 15572 --- [restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Start completed.
+2026-07-12T20:03:15.542+07:00  INFO 15572 --- [restartedMain] org.flywaydb.core.FlywayExecutor         : Database: jdbc:postgresql://localhost:5433/db_url_shortener (PostgreSQL 16.14)
+2026-07-12T20:03:15.606+07:00  INFO 15572 --- [restartedMain] o.f.core.internal.command.DbValidate     : Successfully validated 1 migration (execution time 00:00.021s)
+2026-07-12T20:03:15.723+07:00  INFO 15572 --- [restartedMain] o.f.core.internal.command.DbMigrate      : Current version of schema "public": 1
+2026-07-12T20:03:15.729+07:00  INFO 15572 --- [restartedMain] o.f.core.internal.command.DbMigrate      : Schema "public" is up to date. No migration necessary.
+2026-07-12T20:03:15.806+07:00  INFO 15572 --- [restartedMain] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-07-12T20:03:15.989+07:00  INFO 15572 --- [restartedMain] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-07-12T20:03:16.039+07:00  INFO 15572 --- [restartedMain] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [jdbc:postgresql://localhost:5433/db_url_shortener]
+	Database driver: PostgreSQL JDBC Driver
+	Database dialect: PostgreSQLDialect
+	Database version: 16.14
+	Default catalog/schema: db_url_shortener/public
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-07-12T20:03:16.307+07:00  INFO 15572 --- [restartedMain] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-07-12T20:03:16.381+07:00  INFO 15572 --- [restartedMain] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-07-12T20:03:16.776+07:00  WARN 15572 --- [restartedMain] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-07-12T20:03:17.261+07:00  INFO 15572 --- [restartedMain] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoints beneath base path '/actuator'
+2026-07-12T20:03:17.309+07:00  INFO 15572 --- [restartedMain] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 10689 (http) with context path '/'
+2026-07-12T20:03:17.318+07:00  INFO 15572 --- [restartedMain] c.a.ws.urlshorten.UrlShortenApplication  : Started UrlShortenApplication in 2.989 seconds (process running for 145.425)
+2026-07-12T20:03:17.319+07:00  INFO 15572 --- [SpringApplicationShutdownHook] o.s.boot.tomcat.GracefulShutdown         : Commencing graceful shutdown. Waiting for active requests to complete
+2026-07-12T20:03:17.326+07:00  INFO 15572 --- [restartedMain] .ConditionEvaluationDeltaLoggingListener : Condition evaluation unchanged
+2026-07-12T20:03:17.346+07:00  INFO 15572 --- [tomcat-shutdown] o.s.boot.tomcat.GracefulShutdown         : Graceful shutdown complete
+2026-07-12T20:03:17.353+07:00  INFO 15572 --- [SpringApplicationShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-07-12T20:03:17.356+07:00  INFO 15572 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Shutdown initiated...
+2026-07-12T20:03:17.375+07:00  INFO 15572 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-2 - Shutdown completed.
+2026-07-12T20:03:40.607+07:00  INFO 4140 --- [restartedMain] c.a.ws.urlshorten.UrlShortenApplication  : Starting UrlShortenApplication using Java 21.0.3 with PID 4140 (D:\API\PetProjects\URL Shortener\Backend\target\classes started by Admin in D:\API\PetProjects\URL Shortener\Backend)
+2026-07-12T20:03:40.619+07:00  INFO 4140 --- [restartedMain] c.a.ws.urlshorten.UrlShortenApplication  : No active profile set, falling back to 1 default profile: "default"
+2026-07-12T20:03:40.776+07:00  INFO 4140 --- [restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
+2026-07-12T20:03:40.777+07:00  INFO 4140 --- [restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
+2026-07-12T20:03:42.706+07:00  INFO 4140 --- [restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-07-12T20:03:42.835+07:00  INFO 4140 --- [restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 107 ms. Found 1 JPA repository interface.
+2026-07-12T20:03:44.132+07:00  INFO 4140 --- [restartedMain] o.s.boot.tomcat.TomcatWebServer          : Tomcat initialized with port 10689 (http)
+2026-07-12T20:03:44.267+07:00  INFO 4140 --- [restartedMain] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-07-12T20:03:44.268+07:00  INFO 4140 --- [restartedMain] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/11.0.22]
+2026-07-12T20:03:44.388+07:00  INFO 4140 --- [restartedMain] b.w.c.s.WebApplicationContextInitializer : Root WebApplicationContext: initialization completed in 3607 ms
+2026-07-12T20:03:45.131+07:00  INFO 4140 --- [restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-07-12T20:03:45.472+07:00  INFO 4140 --- [restartedMain] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@f413893
+2026-07-12T20:03:45.477+07:00  INFO 4140 --- [restartedMain] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-07-12T20:03:45.530+07:00  INFO 4140 --- [restartedMain] org.flywaydb.core.FlywayExecutor         : Database: jdbc:postgresql://localhost:5433/db_url_shortener (PostgreSQL 16.14)
+2026-07-12T20:03:45.768+07:00  INFO 4140 --- [restartedMain] o.f.core.internal.command.DbValidate     : Successfully validated 1 migration (execution time 00:00.101s)
+2026-07-12T20:03:45.856+07:00  INFO 4140 --- [restartedMain] o.f.core.internal.command.DbMigrate      : Current version of schema "public": 1
+2026-07-12T20:03:45.872+07:00  INFO 4140 --- [restartedMain] o.f.core.internal.command.DbMigrate      : Schema "public" is up to date. No migration necessary.
+2026-07-12T20:03:46.337+07:00  INFO 4140 --- [restartedMain] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-07-12T20:03:46.512+07:00  INFO 4140 --- [restartedMain] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.4.1.Final
+2026-07-12T20:03:47.788+07:00  INFO 4140 --- [restartedMain] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-07-12T20:03:47.989+07:00  INFO 4140 --- [restartedMain] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [jdbc:postgresql://localhost:5433/db_url_shortener]
+	Database driver: PostgreSQL JDBC Driver
+	Database dialect: PostgreSQLDialect
+	Database version: 16.14
+	Default catalog/schema: db_url_shortener/public
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-07-12T20:03:50.526+07:00  INFO 4140 --- [restartedMain] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-07-12T20:03:50.679+07:00  INFO 4140 --- [restartedMain] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-07-12T20:03:50.923+07:00  INFO 4140 --- [restartedMain] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-07-12T20:03:52.764+07:00  WARN 4140 --- [restartedMain] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-07-12T20:03:53.977+07:00  INFO 4140 --- [restartedMain] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 2 endpoints beneath base path '/actuator'
+2026-07-12T20:03:54.152+07:00  INFO 4140 --- [restartedMain] o.s.boot.tomcat.TomcatWebServer          : Tomcat started on port 10689 (http) with context path '/'
+2026-07-12T20:03:54.166+07:00  INFO 4140 --- [restartedMain] c.a.ws.urlshorten.UrlShortenApplication  : Started UrlShortenApplication in 14.862 seconds (process running for 16.072)
+2026-07-12T20:05:15.718+07:00  INFO 4140 --- [http-nio-10689-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-07-12T20:05:15.720+07:00  INFO 4140 --- [http-nio-10689-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-07-12T20:05:15.730+07:00  INFO 4140 --- [http-nio-10689-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 9 ms
+2026-07-12T20:15:52.538+07:00  INFO 4140 --- [SpringApplicationShutdownHook] o.s.boot.tomcat.GracefulShutdown         : Commencing graceful shutdown. Waiting for active requests to complete
+2026-07-12T20:15:52.564+07:00  INFO 4140 --- [tomcat-shutdown] o.s.boot.tomcat.GracefulShutdown         : Graceful shutdown complete
+2026-07-12T20:15:52.573+07:00  INFO 4140 --- [SpringApplicationShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2026-07-12T20:15:52.584+07:00  INFO 4140 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown initiated...
+2026-07-12T20:15:52.599+07:00  INFO 4140 --- [SpringApplicationShutdownHook] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Shutdown completed.
