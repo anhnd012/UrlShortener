@@ -25,4 +25,9 @@ public class GlobalExceptionHandler {
   public ResponseEntity<String> handleConstraintViolation(ConstraintViolationException ex) {
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
   }
+
+  @ExceptionHandler(ShortUrlNotFoundException.class)
+  public ResponseEntity<String> handleShortUrlNotFound(ShortUrlNotFoundException ex) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+  }
 }

@@ -30,6 +30,7 @@
         <java.version>21</java.version>
         <google-java-format.version>1.35.0</google-java-format.version>
         <jacoco.version>0.8.13</jacoco.version>
+        <springdoc.version>3.0.3</springdoc.version>
         <spotless.version>3.7.0</spotless.version>
     </properties>
     <dependencies>
@@ -40,6 +41,11 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webmvc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>${springdoc.version}</version>
         </dependency>
 
         <dependency>
@@ -107,6 +113,10 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-kafka</artifactId>
         </dependency>
     </dependencies>
 

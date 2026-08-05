@@ -32,4 +32,6 @@ public class ShortUrl extends BaseEntity {
   private Instant validFrom;
 
   private Instant expiresAt;
+
+  private Long numberOfClicks;
 }
