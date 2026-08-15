@@ -13,8 +13,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.appsdeveloperblog.ws.urlshorten.url.model.request.CreateUrlRequest;
 import com.appsdeveloperblog.ws.urlshorten.url.model.response.CreateUrlResponse;
+import com.appsdeveloperblog.ws.urlshorten.url.model.response.ListUrlResponse;
+import com.appsdeveloperblog.ws.urlshorten.url.model.response.ShortUrlAnalyticResponse;
 import com.appsdeveloperblog.ws.urlshorten.url.service.UrlService;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -103,5 +106,27 @@ class UrlControllerTest {
     when(urlService.redirectShortUrl("missing1")).thenReturn(response);
 
     mockMvc.perform(get("/missing1")).andExpect(status().isNotFound());
+  }
+
+  @Test
+  void getAnalyticShortUrlReturnsOkResponse() throws Exception {
+    UUID urlId = UUID.randomUUID();
+    ShortUrlAnalyticResponse response =
+        new ShortUrlAnalyticResponse(new com.appsdeveloperblog.ws.urlshorten.url.entity.ShortUrl());
+    when(urlService.getAnalyticShortUrl(urlId)).thenReturn(response);
+
+    mockMvc.perform(get("/urls/{urlId}/analytics", urlId)).andExpect(status().isOk());
+
+    verify(urlService).getAnalyticShortUrl(urlId);
+  }
+
+  @Test
+  void getUrlsUsesDefaultPagination() throws Exception {
+    ListUrlResponse response = new ListUrlResponse();
+    when(urlService.getValidShortUrls(0, 10)).thenReturn(response);
+
+    mockMvc.perform(get("/urls")).andExpect(status().isOk());
+
+    verify(urlService).getValidShortUrls(0, 10);
   }
 }

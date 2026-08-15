@@ -17,20 +17,28 @@ import com.appsdeveloperblog.ws.urlshorten.url.repository.UrlRepository;
 import com.jayway.jsonpath.JsonPath;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import org.apache.kafka.clients.admin.NewTopic;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Bean;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.kafka.config.TopicBuilder;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.kafka.KafkaContainer;
 import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.testcontainers.utility.DockerImageName;
 
 @Testcontainers
 @SpringBootTest(properties = "app.base-url=https://short.test")
@@ -39,6 +47,24 @@ class UrlApplicationIT {
 
   @Container @ServiceConnection
   static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:16-alpine");
+
+  @Container
+  static final KafkaContainer kafka =
+      new KafkaContainer(DockerImageName.parse("apache/kafka-native:3.8.0"));
+
+  @DynamicPropertySource
+  static void registerKafkaProperties(DynamicPropertyRegistry registry) {
+    registry.add("spring.kafka.bootstrap-servers", kafka::getBootstrapServers);
+  }
+
+  @TestConfiguration(proxyBeanMethods = false)
+  static class KafkaTestConfig {
+
+    @Bean
+    NewTopic shortUrlClickedTopic() {
+      return TopicBuilder.name("short-url-clicked").partitions(1).replicas(1).build();
+    }
+  }
 
   @Autowired private MockMvc mockMvc;
   @Autowired private UrlRepository urlRepository;
@@ -145,9 +171,9 @@ class UrlApplicationIT {
   @Test
   void expiredAndDisabledShortCodesReturnNotFound() throws Exception {
     urlRepository.saveAndFlush(
-        shortUrl("expired1", UrlStatus.ACTIVE, Instant.now().minus(1, ChronoUnit.MINUTES)));
+        shortUrl("expired1", UrlStatus.ACTIVE, Instant.now().minus(1, ChronoUnit.MINUTES), 1));
     urlRepository.saveAndFlush(
-        shortUrl("disabled", UrlStatus.DISABLED, Instant.now().plus(1, ChronoUnit.DAYS)));
+        shortUrl("disabled", UrlStatus.DISABLED, Instant.now().plus(1, ChronoUnit.DAYS), 1));
 
     mockMvc.perform(get("/expired1")).andExpect(status().isNotFound());
     mockMvc.perform(get("/disabled")).andExpect(status().isNotFound());
@@ -156,22 +182,24 @@ class UrlApplicationIT {
   @Test
   void databaseRejectsDuplicateShortCodes() {
     urlRepository.saveAndFlush(
-        shortUrl("duplcode", UrlStatus.ACTIVE, Instant.now().plus(1, ChronoUnit.DAYS)));
+        shortUrl("duplcode", UrlStatus.ACTIVE, Instant.now().plus(1, ChronoUnit.DAYS), 1));
 
     assertThrows(
         DataIntegrityViolationException.class,
         () ->
             urlRepository.saveAndFlush(
-                shortUrl("duplcode", UrlStatus.ACTIVE, Instant.now().plus(1, ChronoUnit.DAYS))));
+                shortUrl("duplcode", UrlStatus.ACTIVE, Instant.now().plus(1, ChronoUnit.DAYS), 1)));
   }
 
-  private ShortUrl shortUrl(String shortCode, UrlStatus status, Instant expiresAt) {
+  private ShortUrl shortUrl(
+      String shortCode, UrlStatus status, Instant expiresAt, long numberOfClicks) {
     ShortUrl shortUrl = new ShortUrl();
     shortUrl.setShortCode(shortCode);
     shortUrl.setLongUrl("https://example.com/articles/testing");
     shortUrl.setStatus(status);
     shortUrl.setValidFrom(Instant.now());
     shortUrl.setExpiresAt(expiresAt);
+    shortUrl.setNumberOfClicks(numberOfClicks);
     return shortUrl;
   }
 }
