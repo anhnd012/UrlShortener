@@ -14,15 +14,13 @@ import com.appsdeveloperblog.ws.urlshorten.url.model.response.ShortUrlAnalyticRe
 import com.appsdeveloperblog.ws.urlshorten.url.repository.UrlRepository;
 import com.appsdeveloperblog.ws.urlshorten.url.service.RedirectCacheService;
 import com.appsdeveloperblog.ws.urlshorten.url.service.UrlService;
+import com.appsdeveloperblog.ws.urlshorten.url.util.ShortUrlUtil;
 import java.net.URI;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
-
-import com.appsdeveloperblog.ws.urlshorten.url.util.ShortUrlUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -145,7 +143,8 @@ public class UrlServiceImpl implements UrlService {
   @Override
   public Optional<String> redirectShortUrl(String shortCode) {
     Optional<String> cachedLongUrl = redirectCacheService.getLongUrl(shortCode);
-    ShortUrlClickedEvent clickedEvent = new ShortUrlClickedEvent(UUID.randomUUID(), shortCode, Instant.now(), 1);
+    ShortUrlClickedEvent clickedEvent =
+        new ShortUrlClickedEvent(UUID.randomUUID(), shortCode, Instant.now(), 1);
     if (cachedLongUrl.isPresent()) {
       clickEventPublisher.publish(clickedEvent);
       return cachedLongUrl;
@@ -170,11 +169,11 @@ public class UrlServiceImpl implements UrlService {
   }
 
   @Override
-  public ListUrlResponse getValidShortUrls(Integer pageNumber,Integer pageSize) {
+  public ListUrlResponse getValidShortUrls(Integer pageNumber, Integer pageSize) {
     Instant now = Instant.now();
     Pageable pageable = PageRequest.of(pageNumber, pageSize);
     Page<ShortUrl> shortUrlList = urlRepository.getValidShortUrls(now, pageable);
-    if(shortUrlList.getTotalElements() == 0) {
+    if (shortUrlList.getTotalElements() == 0) {
       return new ListUrlResponse();
     }
     ListUrlResponse response = shortUrlMapper.mappingListUrlResponse(shortUrlList.getContent());

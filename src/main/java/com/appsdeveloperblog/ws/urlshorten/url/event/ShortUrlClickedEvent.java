@@ -4,8 +4,4 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record ShortUrlClickedEvent(
-    UUID eventId,
-    String shortCode,
-    Instant occurredAt,
-    int version
-) {}
+    UUID eventId, String shortCode, Instant occurredAt, int version) {}

@@ -10,7 +10,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import java.net.URI;
 import java.util.UUID;
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -53,9 +52,8 @@ public class UrlController {
 
   @GetMapping({"/urls", "/api/v1/urls"})
   public ResponseEntity<ListUrlResponse> getUrls(
-          @RequestParam(defaultValue = "0") Integer pageNumber,
-          @RequestParam(defaultValue = "10") Integer pageSize
-  ) {
+      @RequestParam(defaultValue = "0") Integer pageNumber,
+      @RequestParam(defaultValue = "10") Integer pageSize) {
     ListUrlResponse response = urlService.getValidShortUrls(pageNumber, pageSize);
     return ResponseEntity.status(HttpStatus.OK).body(response);
   }
