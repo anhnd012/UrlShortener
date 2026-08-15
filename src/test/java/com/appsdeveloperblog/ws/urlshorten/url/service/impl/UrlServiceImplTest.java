@@ -14,20 +14,29 @@ import static org.mockito.Mockito.when;
 import com.appsdeveloperblog.ws.urlshorten.url.entity.ShortUrl;
 import com.appsdeveloperblog.ws.urlshorten.url.exception.InvalidUrlException;
 import com.appsdeveloperblog.ws.urlshorten.url.exception.UrlRetryException;
+import com.appsdeveloperblog.ws.urlshorten.url.mapper.ShortUrlMapper;
+import com.appsdeveloperblog.ws.urlshorten.url.messaging.ClickEventPublisher;
 import com.appsdeveloperblog.ws.urlshorten.url.model.enums.UrlStatus;
 import com.appsdeveloperblog.ws.urlshorten.url.model.request.CreateUrlRequest;
 import com.appsdeveloperblog.ws.urlshorten.url.model.response.CreateUrlResponse;
+import com.appsdeveloperblog.ws.urlshorten.url.model.response.ListUrlResponse;
+import com.appsdeveloperblog.ws.urlshorten.url.model.response.ShortUrlAnalyticResponse;
 import com.appsdeveloperblog.ws.urlshorten.url.repository.UrlRepository;
 import com.appsdeveloperblog.ws.urlshorten.url.service.RedirectCacheService;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.util.ReflectionTestUtils;
 
 class UrlServiceImplTest {
@@ -35,12 +44,18 @@ class UrlServiceImplTest {
   private UrlRepository urlRepository;
   private UrlServiceImpl urlService;
   private RedirectCacheService redirectCacheService;
+  private ClickEventPublisher clickEventPublisher;
+  private ShortUrlMapper shortUrlMapper;
 
   @BeforeEach
   void setUp() {
     urlRepository = mock(UrlRepository.class);
     redirectCacheService = mock(RedirectCacheService.class);
-    urlService = new UrlServiceImpl(urlRepository, redirectCacheService);
+    clickEventPublisher = mock(ClickEventPublisher.class);
+    shortUrlMapper = mock(ShortUrlMapper.class);
+    urlService =
+        new UrlServiceImpl(
+            urlRepository, redirectCacheService, clickEventPublisher, shortUrlMapper);
     ReflectionTestUtils.setField(urlService, "baseUrl", "https://short.ly");
   }
 
@@ -265,6 +280,58 @@ class UrlServiceImplTest {
     Optional<String> response = urlService.redirectShortUrl(shortCode);
 
     assertTrue(response.isEmpty());
+  }
+
+  @Test
+  void getAnalyticShortUrlReturnsClickCountForUrl() {
+    UUID urlId = UUID.randomUUID();
+    ShortUrl shortUrl = new ShortUrl();
+    ReflectionTestUtils.setField(shortUrl, "id", urlId);
+    shortUrl.setNumberOfClicks(12L);
+    when(urlRepository.getById(urlId)).thenReturn(shortUrl);
+
+    ShortUrlAnalyticResponse response = urlService.getAnalyticShortUrl(urlId);
+
+    assertAll(
+        () -> assertEquals(urlId, response.getShortUrlId()),
+        () -> assertEquals(12L, response.getNumberOfClicks()));
+    verify(urlRepository).getById(urlId);
+  }
+
+  @Test
+  void getValidShortUrlsWhenNoUrlsReturnsEmptyResponse() {
+    when(urlRepository.getValidShortUrls(
+            org.mockito.ArgumentMatchers.any(Instant.class),
+            org.mockito.ArgumentMatchers.eq(PageRequest.of(0, 10))))
+        .thenReturn(Page.empty());
+
+    ListUrlResponse response = urlService.getValidShortUrls(0, 10);
+
+    assertNotNull(response);
+    verify(shortUrlMapper, never()).mappingListUrlResponse(org.mockito.ArgumentMatchers.anyList());
+  }
+
+  @Test
+  void getValidShortUrlsMapsResultsWhenUrlsExist() {
+    ShortUrl shortUrl =
+        createShortUrl(
+            "aB12xYz9",
+            "https://example.com/article",
+            UrlStatus.ACTIVE,
+            Instant.now().plus(30, ChronoUnit.DAYS));
+    Page<ShortUrl> page = new PageImpl<>(List.of(shortUrl));
+    ListUrlResponse expected = new ListUrlResponse();
+    when(urlRepository.getValidShortUrls(
+            org.mockito.ArgumentMatchers.any(Instant.class),
+            org.mockito.ArgumentMatchers.eq(PageRequest.of(1, 5))))
+        .thenReturn(page);
+    when(shortUrlMapper.mappingListUrlResponse(page.getContent())).thenReturn(expected);
+
+    ListUrlResponse response = urlService.getValidShortUrls(1, 5);
+
+    assertTrue(response == expected);
+    verify(shortUrlMapper)
+        .mappingListUrlResponse(org.mockito.ArgumentMatchers.eq(page.getContent()));
   }
 
   private ShortUrl createShortUrl(

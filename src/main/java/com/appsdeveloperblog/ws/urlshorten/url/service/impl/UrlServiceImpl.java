@@ -1,22 +1,32 @@
 package com.appsdeveloperblog.ws.urlshorten.url.service.impl;
 
 import com.appsdeveloperblog.ws.urlshorten.url.entity.ShortUrl;
+import com.appsdeveloperblog.ws.urlshorten.url.event.ShortUrlClickedEvent;
 import com.appsdeveloperblog.ws.urlshorten.url.exception.InvalidUrlException;
 import com.appsdeveloperblog.ws.urlshorten.url.exception.UrlRetryException;
+import com.appsdeveloperblog.ws.urlshorten.url.mapper.ShortUrlMapper;
+import com.appsdeveloperblog.ws.urlshorten.url.messaging.ClickEventPublisher;
 import com.appsdeveloperblog.ws.urlshorten.url.model.enums.UrlStatus;
 import com.appsdeveloperblog.ws.urlshorten.url.model.request.CreateUrlRequest;
 import com.appsdeveloperblog.ws.urlshorten.url.model.response.CreateUrlResponse;
+import com.appsdeveloperblog.ws.urlshorten.url.model.response.ListUrlResponse;
+import com.appsdeveloperblog.ws.urlshorten.url.model.response.ShortUrlAnalyticResponse;
 import com.appsdeveloperblog.ws.urlshorten.url.repository.UrlRepository;
 import com.appsdeveloperblog.ws.urlshorten.url.service.RedirectCacheService;
 import com.appsdeveloperblog.ws.urlshorten.url.service.UrlService;
+import com.appsdeveloperblog.ws.urlshorten.url.util.ShortUrlUtil;
 import java.net.URI;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.Random;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -29,6 +39,8 @@ public class UrlServiceImpl implements UrlService {
       "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
   private static final int MAX_RETRY = 5;
   private final RedirectCacheService redirectCacheService;
+  private final ClickEventPublisher clickEventPublisher;
+  private final ShortUrlMapper shortUrlMapper;
 
   @Value("${app.base-url}")
   private String baseUrl;
@@ -41,7 +53,7 @@ public class UrlServiceImpl implements UrlService {
 
       try {
         ShortUrl entity = buildShortUrlEntity(shortCode, normalizedLongUrl);
-        String shortUrl = String.format("%s/%s", baseUrl, shortCode);
+        String shortUrl = ShortUrlUtil.buildShortUrl(baseUrl, shortCode);
         urlRepository.saveAndFlush(entity);
 
         return CreateUrlResponse.builder()
@@ -106,7 +118,7 @@ public class UrlServiceImpl implements UrlService {
     entity.setStatus(UrlStatus.ACTIVE);
     entity.setValidFrom(now);
     entity.setExpiresAt(expiresAt);
-
+    entity.setNumberOfClicks(0l);
     return entity;
   }
 
@@ -131,7 +143,10 @@ public class UrlServiceImpl implements UrlService {
   @Override
   public Optional<String> redirectShortUrl(String shortCode) {
     Optional<String> cachedLongUrl = redirectCacheService.getLongUrl(shortCode);
+    ShortUrlClickedEvent clickedEvent =
+        new ShortUrlClickedEvent(UUID.randomUUID(), shortCode, Instant.now(), 1);
     if (cachedLongUrl.isPresent()) {
+      clickEventPublisher.publish(clickedEvent);
       return cachedLongUrl;
     }
     ShortUrl shortUrl = urlRepository.getByShortCode(shortCode);
@@ -143,6 +158,25 @@ public class UrlServiceImpl implements UrlService {
     }
     redirectCacheService.put(
         shortCode, shortUrl.getLongUrl(), shortUrl.getExpiresAt().toEpochMilli());
+    clickEventPublisher.publish(clickedEvent);
     return Optional.of(shortUrl.getLongUrl());
+  }
+
+  @Override
+  public ShortUrlAnalyticResponse getAnalyticShortUrl(UUID urlId) {
+    ShortUrl response = urlRepository.getById(urlId);
+    return new ShortUrlAnalyticResponse(response);
+  }
+
+  @Override
+  public ListUrlResponse getValidShortUrls(Integer pageNumber, Integer pageSize) {
+    Instant now = Instant.now();
+    Pageable pageable = PageRequest.of(pageNumber, pageSize);
+    Page<ShortUrl> shortUrlList = urlRepository.getValidShortUrls(now, pageable);
+    if (shortUrlList.getTotalElements() == 0) {
+      return new ListUrlResponse();
+    }
+    ListUrlResponse response = shortUrlMapper.mappingListUrlResponse(shortUrlList.getContent());
+    return response;
   }
 }
