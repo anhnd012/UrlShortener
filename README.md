@@ -4,20 +4,12 @@ This is the backend service for a URL shortener and click-count analytics applic
 
 The project is also a practical learning project for Spring Boot, PostgreSQL, Redis, Kafka, Docker, database migrations, asynchronous processing, concurrency, testing, and Maven build automation.
 
-## Features
+## Highlights
 
-- Create an eight-character Base62 short code for a destination URL.
-- Validate URL syntax and reject selected local or private IPv4 address patterns.
-- Persist short-link data in PostgreSQL with Spring Data JPA.
-- Redirect active and non-expired links with `302 Found`.
-- Use Redis as a cache-aside layer for redirect lookups.
-- Limit cache entries to both the configured cache TTL and the link's remaining lifetime.
-- Publish click events asynchronously to Kafka.
-- Consume click events transactionally and increment click counts in PostgreSQL.
-- Store processed event IDs to support duplicate-event protection.
-- Expose click-count analytics for an individual short URL.
-- Run Flyway migrations before Hibernate validates the schema.
-- Generate OpenAPI documentation through Springdoc.
+- **Simple link creation** — Generates eight-character Base62 links while validating destination URLs.
+- **Fast and safe redirects** — Uses Redis for cache-first lookups, falls back to PostgreSQL, and enforces link status and expiration.
+- **Event-driven analytics** — Publishes click events to Kafka and processes them transactionally with duplicate-event protection.
+- **Production-minded engineering** — Includes Flyway migrations, Docker Compose infrastructure, Testcontainers tests, JaCoCo coverage gates, Spotless formatting, OpenAPI documentation, and k6 performance checks.
 
 ## Technology Stack
 
