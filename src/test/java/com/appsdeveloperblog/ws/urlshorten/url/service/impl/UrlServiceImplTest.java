@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 import com.appsdeveloperblog.ws.urlshorten.url.entity.ShortUrl;
 import com.appsdeveloperblog.ws.urlshorten.url.exception.InvalidUrlException;
 import com.appsdeveloperblog.ws.urlshorten.url.exception.UrlRetryException;
+import com.appsdeveloperblog.ws.urlshorten.url.messaging.ClickEventPublisher;
 import com.appsdeveloperblog.ws.urlshorten.url.model.enums.UrlStatus;
 import com.appsdeveloperblog.ws.urlshorten.url.model.request.CreateUrlRequest;
 import com.appsdeveloperblog.ws.urlshorten.url.model.response.CreateUrlResponse;
@@ -35,12 +36,14 @@ class UrlServiceImplTest {
   private UrlRepository urlRepository;
   private UrlServiceImpl urlService;
   private RedirectCacheService redirectCacheService;
+  private ClickEventPublisher clickEventPublisher;
 
   @BeforeEach
   void setUp() {
     urlRepository = mock(UrlRepository.class);
     redirectCacheService = mock(RedirectCacheService.class);
-    urlService = new UrlServiceImpl(urlRepository, redirectCacheService, null, null);
+    clickEventPublisher = mock(ClickEventPublisher.class);
+    urlService = new UrlServiceImpl(urlRepository, redirectCacheService, clickEventPublisher, null);
     ReflectionTestUtils.setField(urlService, "baseUrl", "https://short.ly");
   }
 
