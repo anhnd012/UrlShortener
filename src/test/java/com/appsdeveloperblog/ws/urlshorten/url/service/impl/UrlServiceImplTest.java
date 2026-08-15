@@ -40,7 +40,7 @@ class UrlServiceImplTest {
   void setUp() {
     urlRepository = mock(UrlRepository.class);
     redirectCacheService = mock(RedirectCacheService.class);
-    urlService = new UrlServiceImpl(urlRepository, redirectCacheService, null);
+    urlService = new UrlServiceImpl(urlRepository, redirectCacheService, null, null);
     ReflectionTestUtils.setField(urlService, "baseUrl", "https://short.ly");
   }
 

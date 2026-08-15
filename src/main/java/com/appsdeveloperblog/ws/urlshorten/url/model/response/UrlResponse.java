@@ -28,5 +28,8 @@ public class UrlResponse {
   private String expiresAt;
 
   @Schema(description = "The total short link's click number")
-  private Integer clickNumbers;
+  private Long clickNumbers;
+
+  @Schema(description = "The created at short link date")
+  private String createdAt;
 }

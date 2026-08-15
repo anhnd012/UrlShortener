@@ -1,13 +1,17 @@
 package com.appsdeveloperblog.ws.urlshorten.url.messaging;
 
+import com.appsdeveloperblog.ws.urlshorten.url.entity.ShortUrl;
 import com.appsdeveloperblog.ws.urlshorten.url.event.ShortUrlClickedEvent;
 import com.appsdeveloperblog.ws.urlshorten.url.exception.InvalidUrlException;
 import com.appsdeveloperblog.ws.urlshorten.url.exception.ShortUrlNotFoundException;
+import com.appsdeveloperblog.ws.urlshorten.url.mapper.ShortUrlMapper;
+import com.appsdeveloperblog.ws.urlshorten.url.event.ClickUpdatedEvent;
 import com.appsdeveloperblog.ws.urlshorten.url.repository.ProcessedClickEventRepository;
 import com.appsdeveloperblog.ws.urlshorten.url.repository.UrlRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
@@ -17,6 +21,8 @@ import org.springframework.stereotype.Component;
 public class ShortUrlClickedConsumer {
     private final UrlRepository urlRepository;
     private final ProcessedClickEventRepository processedClickEventRepository;
+    private final ShortUrlMapper mapper;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     @KafkaListener(topics = "${app.kafka.topics.short-url-clicked}")
     @Transactional
@@ -33,6 +39,10 @@ public class ShortUrlClickedConsumer {
         if(updatedRows != 1) {
             throw new ShortUrlNotFoundException(event.shortCode());
         }
+
+        ShortUrl shortUrl = urlRepository.getByShortCode(event.shortCode());
+        ClickUpdatedEvent clickUpdatedEvent = mapper.toClickUpdatedEvent(shortUrl);
+        applicationEventPublisher.publishEvent(clickUpdatedEvent);
     }
 
 }
