@@ -4,6 +4,8 @@ This is the backend service for a URL shortener and click-count analytics applic
 
 The project is also a practical learning project for Spring Boot, PostgreSQL, Redis, Kafka, Docker, database migrations, asynchronous processing, concurrency, testing, and Maven build automation.
 
+- Frontend: https://github.com/anhnd012/UrlShortenerWebClient
+
 ## Highlights
 
 - **Simple link creation** — Generates eight-character Base62 links while validating destination URLs.
