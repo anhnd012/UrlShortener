@@ -32,10 +32,11 @@ public class ShortUrlMapper {
     response.setShortUrl(ShortUrlUtil.buildShortUrl(baseUrl, shortUrl.getShortCode()));
     response.setLongUrl(shortUrl.getLongUrl());
     response.setStatus(shortUrl.getStatus().toString());
-    response.setClickNumbers(shortUrl.getNumberOfClicks());
+    response.setNumberOfClicks(shortUrl.getNumberOfClicks());
     response.setValidFrom(shortUrl.getValidFrom().toString());
     response.setExpiresAt(shortUrl.getExpiresAt().toString());
     response.setCreatedAt(shortUrl.getCreatedAt().toString());
+    response.setShortCode(shortUrl.getShortCode());
     return response;
   }
 

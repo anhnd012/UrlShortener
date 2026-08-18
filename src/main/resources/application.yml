@@ -10,7 +10,7 @@ spring:
   data:
     redis:
       host: localhost
-      port: 6379
+      port: 6779
 
   jpa:
     hibernate:
@@ -46,6 +46,8 @@ app:
   kafka:
     topics:
       short-url-clicked: "short-url-clicked"
+  redis:
+    click-channel: short-url:click-updated
 
 
 logging:
