@@ -101,7 +101,7 @@ class UrlApplicationIT {
 
     assertAll(
         () -> assertTrue(shortCode.matches("[0-9a-zA-Z]{8}")),
-        () -> assertEquals("https://short.test/" + shortCode, shortUrl),
+        () -> assertEquals("https://short.test/urls/" + shortCode, shortUrl),
         () -> assertNotNull(persisted),
         () -> assertEquals(longUrl, persisted.getLongUrl()),
         () -> assertEquals(UrlStatus.ACTIVE, persisted.getStatus()),
@@ -114,7 +114,7 @@ class UrlApplicationIT {
         () -> assertEquals(validFrom.plus(30, ChronoUnit.DAYS), expiresAt));
 
     mockMvc
-        .perform(get("/{shortCode}", shortCode))
+        .perform(get("/urls/{shortCode}", shortCode))
         .andExpect(status().isFound())
         .andExpect(header().string(HttpHeaders.LOCATION, longUrl));
   }
@@ -164,8 +164,8 @@ class UrlApplicationIT {
 
   @Test
   void missingAndMalformedShortCodesReturnClientErrors() throws Exception {
-    mockMvc.perform(get("/missing1")).andExpect(status().isNotFound());
-    mockMvc.perform(get("/short")).andExpect(status().isBadRequest());
+    mockMvc.perform(get("/urls/missing1")).andExpect(status().isNotFound());
+    mockMvc.perform(get("/urls/short")).andExpect(status().isBadRequest());
   }
 
   @Test
@@ -175,8 +175,8 @@ class UrlApplicationIT {
     urlRepository.saveAndFlush(
         shortUrl("disabled", UrlStatus.DISABLED, Instant.now().plus(1, ChronoUnit.DAYS), 1));
 
-    mockMvc.perform(get("/expired1")).andExpect(status().isNotFound());
-    mockMvc.perform(get("/disabled")).andExpect(status().isNotFound());
+    mockMvc.perform(get("/urls/expired1")).andExpect(status().isNotFound());
+    mockMvc.perform(get("/urls/disabled")).andExpect(status().isNotFound());
   }
 
   @Test

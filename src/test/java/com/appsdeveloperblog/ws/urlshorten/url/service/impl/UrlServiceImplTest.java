@@ -78,7 +78,7 @@ class UrlServiceImplTest {
                 "shortCode should be Base62 with 8 chars"),
         () ->
             assertEquals(
-                "https://short.ly/" + response.getShortCode(),
+                "https://short.ly/urls/" + response.getShortCode(),
                 response.getShortUrl(),
                 "shortUrl should use base URL + shortCode"),
         () ->
@@ -128,7 +128,9 @@ class UrlServiceImplTest {
 
     assertAll(
         () -> assertEquals("https://jakob.com/java-date-time", savedShortUrl.getLongUrl()),
-        () -> assertEquals("https://short.ly/" + response.getShortCode(), response.getShortUrl()));
+        () ->
+            assertEquals(
+                "https://short.ly/urls/" + response.getShortCode(), response.getShortUrl()));
   }
 
   @Test

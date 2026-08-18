@@ -39,7 +39,7 @@ class UrlControllerTest {
     CreateUrlResponse response =
         CreateUrlResponse.builder()
             .shortCode("aB12xYz9")
-            .shortUrl("https://short.ly/aB12xYz9")
+            .shortUrl("https://short.ly/urls/aB12xYz9")
             .status("ACTIVE")
             .validFrom("2026-06-14T08:00:00Z")
             .expiresAt("2026-07-14T08:00:00Z")
@@ -58,7 +58,7 @@ class UrlControllerTest {
                                 """))
         .andExpect(status().isCreated())
         .andExpect(jsonPath("$.shortCode").value("aB12xYz9"))
-        .andExpect(jsonPath("$.shortUrl").value("https://short.ly/aB12xYz9"))
+        .andExpect(jsonPath("$.shortUrl").value("https://short.ly/urls/aB12xYz9"))
         .andExpect(jsonPath("$.status").value("ACTIVE"))
         .andExpect(jsonPath("$.validFrom").value("2026-06-14T08:00:00Z"))
         .andExpect(jsonPath("$.expiresAt").value("2026-07-14T08:00:00Z"));
@@ -94,7 +94,7 @@ class UrlControllerTest {
     when(urlService.redirectShortUrl("aB12xYz9")).thenReturn(response);
 
     mockMvc
-        .perform(get("/aB12xYz9"))
+        .perform(get("/urls/aB12xYz9"))
         .andExpect(status().isFound())
         .andExpect(header().string(HttpHeaders.LOCATION, "https://www.youtube.com/watch?v=spring"));
   }
@@ -105,7 +105,7 @@ class UrlControllerTest {
 
     when(urlService.redirectShortUrl("missing1")).thenReturn(response);
 
-    mockMvc.perform(get("/missing1")).andExpect(status().isNotFound());
+    mockMvc.perform(get("/urls/missing1")).andExpect(status().isNotFound());
   }
 
   @Test
