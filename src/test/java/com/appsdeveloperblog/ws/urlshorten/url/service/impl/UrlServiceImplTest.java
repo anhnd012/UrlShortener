@@ -37,11 +37,16 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import com.appsdeveloperblog.ws.urlshorten.auth.model.entity.User;
+import com.appsdeveloperblog.ws.urlshorten.auth.repository.UserRepository;
+import com.appsdeveloperblog.ws.urlshorten.workplace.repository.WorkplaceRepository;
 import org.springframework.test.util.ReflectionTestUtils;
 
 class UrlServiceImplTest {
 
   private UrlRepository urlRepository;
+  private UserRepository userRepository;
+  private WorkplaceRepository workplaceRepository;
   private UrlServiceImpl urlService;
   private RedirectCacheService redirectCacheService;
   private ClickEventPublisher clickEventPublisher;
@@ -50,12 +55,20 @@ class UrlServiceImplTest {
   @BeforeEach
   void setUp() {
     urlRepository = mock(UrlRepository.class);
+    userRepository = mock(UserRepository.class);
+    workplaceRepository = mock(WorkplaceRepository.class);
     redirectCacheService = mock(RedirectCacheService.class);
     clickEventPublisher = mock(ClickEventPublisher.class);
     shortUrlMapper = mock(ShortUrlMapper.class);
+
+    User defaultOwner = new User();
+    defaultOwner.setEmail("user@example.com");
+    ReflectionTestUtils.setField(defaultOwner, "id", UUID.randomUUID());
+    when(userRepository.findAll()).thenReturn(List.of(defaultOwner));
+
     urlService =
         new UrlServiceImpl(
-            urlRepository, redirectCacheService, clickEventPublisher, shortUrlMapper);
+            urlRepository, userRepository, workplaceRepository, redirectCacheService, clickEventPublisher, shortUrlMapper);
     ReflectionTestUtils.setField(urlService, "baseUrl", "https://short.ly");
   }
 
@@ -334,6 +347,17 @@ class UrlServiceImplTest {
     assertTrue(response == expected);
     verify(shortUrlMapper)
         .mappingListUrlResponse(org.mockito.ArgumentMatchers.eq(page.getContent()));
+  }
+
+  @Test
+  void expireOutdatedUrlsReturnsCountFromRepository() {
+    when(urlRepository.expireOutdatedUrls(org.mockito.ArgumentMatchers.any(Instant.class)))
+        .thenReturn(7);
+
+    int result = urlService.expireOutdatedUrls();
+
+    assertEquals(7, result);
+    verify(urlRepository).expireOutdatedUrls(org.mockito.ArgumentMatchers.any(Instant.class));
   }
 
   private ShortUrl createShortUrl(

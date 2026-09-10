@@ -41,7 +41,8 @@ public class ShortUrlMapper {
   }
 
   public ClickUpdatedEvent toClickUpdatedEvent(ShortUrl shortUrl) {
+    java.time.Instant occurredAt = shortUrl.getUpdatedAt() != null ? shortUrl.getUpdatedAt() : java.time.Instant.now();
     return new ClickUpdatedEvent(
-        shortUrl.getNumberOfClicks(), shortUrl.getShortCode(), shortUrl.getUpdatedAt());
+        shortUrl.getNumberOfClicks(), shortUrl.getShortCode(), occurredAt);
   }
 }

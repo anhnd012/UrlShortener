@@ -17,6 +17,7 @@ spring:
     data:
       redis:
         namespace: url-shortener
+        repository-type: indexed
 
   jpa:
     hibernate:
@@ -47,6 +48,11 @@ management:
 
 app:
   base-url: http://localhost:11000
+  frontend-base-url: http://localhost:5173
+  auth:
+    password-reset:
+      token-ttl: 15m
+      email-mode: log
   cache:
     redirect-ttl: 30m
   kafka:
@@ -62,12 +68,21 @@ app:
     sign-in-ip-rate-limit: 5
     sign-in-ip-rate-limit-minutes: 30
 
+    password-reset-ip-rate-limit: 10
+    password-reset-ip-rate-limit-minutes: 60
+    password-reset-email-rate-limit: 3
+    password-reset-email-rate-limit-hours: 1
+
   s3:
     endpoint: http://localhost:9000
     access-key: minioadmin
     secret-key: miniopassword123
     bucket-name: url-shortener-avatars
     region: us-east-1
+
+  scheduler:
+    expire-urls-cron: "0 0 0 * * ?"
+    lock-at-most-for: 10m
 
 logging:
   file:

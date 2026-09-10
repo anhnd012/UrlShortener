@@ -15,4 +15,6 @@ public interface UrlService {
   ShortUrlAnalyticResponse getAnalyticShortUrl(UUID urlId);
 
   ListUrlResponse getValidShortUrls(Integer pageNumber, Integer pageSize);
+
+  int expireOutdatedUrls();
 }

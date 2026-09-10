@@ -1,5 +1,7 @@
 package com.appsdeveloperblog.ws.urlshorten.url.service.impl;
 
+import com.appsdeveloperblog.ws.urlshorten.auth.model.entity.User;
+import com.appsdeveloperblog.ws.urlshorten.auth.repository.UserRepository;
 import com.appsdeveloperblog.ws.urlshorten.url.entity.ShortUrl;
 import com.appsdeveloperblog.ws.urlshorten.url.event.ShortUrlClickedEvent;
 import com.appsdeveloperblog.ws.urlshorten.url.exception.InvalidUrlException;
@@ -18,6 +20,7 @@ import com.appsdeveloperblog.ws.urlshorten.url.util.ShortUrlUtil;
 import java.net.URI;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
@@ -30,10 +33,15 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import com.appsdeveloperblog.ws.urlshorten.workplace.model.entity.Workplace;
+import com.appsdeveloperblog.ws.urlshorten.workplace.repository.WorkplaceRepository;
+
 @Service
 @RequiredArgsConstructor
 public class UrlServiceImpl implements UrlService {
   private final UrlRepository urlRepository;
+  private final UserRepository userRepository;
+  private final WorkplaceRepository workplaceRepository;
   private static final Integer MAX_ALLOWED_CHARACTERS = 2048;
   private static final String BASE62 =
       "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -52,7 +60,7 @@ public class UrlServiceImpl implements UrlService {
       String shortCode = generateRandomBase62(8);
 
       try {
-        ShortUrl entity = buildShortUrlEntity(shortCode, normalizedLongUrl);
+        ShortUrl entity = buildShortUrlEntity(shortCode, normalizedLongUrl, request.getWorkplaceId());
         String shortUrl = ShortUrlUtil.buildShortUrl(baseUrl, shortCode);
         urlRepository.saveAndFlush(entity);
 
@@ -108,9 +116,12 @@ public class UrlServiceImpl implements UrlService {
     return sb.toString();
   }
 
-  private ShortUrl buildShortUrlEntity(String shortCode, String normalizedLongUrl) {
+  private ShortUrl buildShortUrlEntity(String shortCode, String normalizedLongUrl, UUID workplaceId) {
     Instant now = Instant.now();
     Instant expiresAt = now.plus(30, ChronoUnit.DAYS);
+
+    User owner = getOrCreateDefaultOwner();
+    Workplace workplace = resolveWorkplace(workplaceId, owner.getId());
 
     ShortUrl entity = new ShortUrl();
     entity.setShortCode(shortCode);
@@ -118,8 +129,39 @@ public class UrlServiceImpl implements UrlService {
     entity.setStatus(UrlStatus.ACTIVE);
     entity.setValidFrom(now);
     entity.setExpiresAt(expiresAt);
-    entity.setNumberOfClicks(0l);
+    entity.setNumberOfClicks(0L);
+    entity.setOwner(owner);
+    entity.setWorkplace(workplace);
     return entity;
+  }
+
+  private Workplace resolveWorkplace(UUID requestedWorkplaceId, UUID ownerId) {
+    if (requestedWorkplaceId != null) {
+      return workplaceRepository.findById(requestedWorkplaceId).orElse(null);
+    }
+
+    List<Workplace> userWorkplaces = workplaceRepository.findAllByMemberUserId(ownerId);
+    if (!userWorkplaces.isEmpty()) {
+      return userWorkplaces.get(0);
+    }
+
+    List<Workplace> allWorkplaces = workplaceRepository.findAll();
+    return allWorkplaces.isEmpty() ? null : allWorkplaces.get(0);
+  }
+
+  private User getOrCreateDefaultOwner() {
+    return userRepository
+        .findAll()
+        .stream()
+        .findFirst()
+        .orElseGet(
+            () -> {
+              User defaultUser = new User();
+              defaultUser.setEmail("user@example.com");
+              defaultUser.setPasswordHash("$2a$10$defaultPasswordHashPlaceholder1234567890");
+              defaultUser.setName("LinkFlow User");
+              return userRepository.saveAndFlush(defaultUser);
+            });
   }
 
   private String validateAndNormalize(CreateUrlRequest request) {
@@ -178,5 +220,12 @@ public class UrlServiceImpl implements UrlService {
     }
     ListUrlResponse response = shortUrlMapper.mappingListUrlResponse(shortUrlList.getContent());
     return response;
+  }
+
+  @Override
+  @org.springframework.transaction.annotation.Transactional
+  public int expireOutdatedUrls() {
+    Instant now = Instant.now();
+    return urlRepository.expireOutdatedUrls(now);
   }
 }
