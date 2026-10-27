@@ -78,4 +78,14 @@ public class PasswordResetTokenServiceImpl implements PasswordResetTokenService 
       throw new IllegalStateException("SHA-256 is not available.", exception);
     }
   }
+
+  @Override
+  public String createRandomRefreshToken() {
+    byte[] bytes = new byte[32];
+    SECURE_RANDOM.nextBytes(bytes);
+
+    return Base64.getUrlEncoder()
+            .withoutPadding()
+            .encodeToString(bytes);
+  }
 }

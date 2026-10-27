@@ -8,4 +8,6 @@ public interface PasswordResetTokenService {
   String createToken(User user);
 
   UUID consumeToken(String rawToken);
+
+  String createRandomRefreshToken();
 }

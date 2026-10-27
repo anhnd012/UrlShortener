@@ -44,7 +44,8 @@ class UrlControllerTest {
             .validFrom("2026-06-14T08:00:00Z")
             .expiresAt("2026-07-14T08:00:00Z")
             .build();
-    when(urlService.createShortUrl(any(CreateUrlRequest.class))).thenReturn(response);
+    when(urlService.createShortUrl(any(CreateUrlRequest.class), any(UUID.class), any(UUID.class)))
+        .thenReturn(response);
 
     mockMvc
         .perform(
@@ -65,7 +66,7 @@ class UrlControllerTest {
 
     ArgumentCaptor<CreateUrlRequest> requestCaptor =
         ArgumentCaptor.forClass(CreateUrlRequest.class);
-    verify(urlService).createShortUrl(requestCaptor.capture());
+    verify(urlService).createShortUrl(requestCaptor.capture(), any(UUID.class), any(UUID.class));
     assertEquals(
         "https://www.google.com/search?q=spring+boot", requestCaptor.getValue().getLongUrl());
   }
@@ -84,14 +85,15 @@ class UrlControllerTest {
                                 """))
         .andExpect(status().isBadRequest());
 
-    verify(urlService, never()).createShortUrl(any(CreateUrlRequest.class));
+    verify(urlService, never())
+        .createShortUrl(any(CreateUrlRequest.class), any(UUID.class), any(UUID.class));
   }
 
   @Test
   void redirectShortUrlWhenShortCodeIsValidReturnsFoundWithLocationHeader() throws Exception {
     Optional<String> response = Optional.of("https://www.youtube.com/watch?v=spring");
 
-    when(urlService.redirectShortUrl("aB12xYz9")).thenReturn(response);
+    when(urlService.getValidLongUrl("aB12xYz9")).thenReturn(response);
 
     mockMvc
         .perform(get("/urls/aB12xYz9"))
@@ -103,7 +105,7 @@ class UrlControllerTest {
   void redirectShortUrlWhenShortCodeIsInvalidReturnsNotFound() throws Exception {
     Optional<String> response = Optional.empty();
 
-    when(urlService.redirectShortUrl("missing1")).thenReturn(response);
+    when(urlService.getValidLongUrl("missing1")).thenReturn(response);
 
     mockMvc.perform(get("/urls/missing1")).andExpect(status().isNotFound());
   }

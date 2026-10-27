@@ -2,6 +2,8 @@ server:
   port: 11000
 
 spring:
+  config:
+    import: "optional:file:./.env[.properties]"
   datasource:
     url: jdbc:postgresql://localhost:5433/db_url_shortener
     username: admin
@@ -38,6 +40,7 @@ spring:
       value-deserializer: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
       properties:
         spring.json.trusted.packages: com.appsdeveloperblog.ws.urlshorten.url.event
+
 
 management:
   endpoints:
@@ -84,6 +87,16 @@ app:
     expire-urls-cron: "0 0 0 * * ?"
     lock-at-most-for: 10m
 
+  jwt:
+    secret-base64: Y29sdW1ucGlua3NvbGRpZXJnZW50bHlyZW1haW5jYWxtbGl2ZWhhcmJvcmFjY2lkZW4=
+    acc_token_expiration: 900
+    refresh_token_expiration: 86400
+    issuer: link-flow
+    audience: link-flow-api
+
 logging:
   file:
     name: ./logs/url-shortener.log
+  level:
+    org.springframework.security: TRACE
+

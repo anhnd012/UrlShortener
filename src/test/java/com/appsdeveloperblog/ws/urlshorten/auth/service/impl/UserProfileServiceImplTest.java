@@ -31,6 +31,7 @@ class UserProfileServiceImplTest {
     userRepository = mock(UserRepository.class);
     fileStorageService = mock(FileStorageService.class);
     userProfileService = new UserProfileServiceImpl(userRepository, fileStorageService);
+
   }
 
   @Test

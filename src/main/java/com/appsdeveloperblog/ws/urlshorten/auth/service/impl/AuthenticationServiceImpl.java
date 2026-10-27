@@ -2,6 +2,11 @@ package com.appsdeveloperblog.ws.urlshorten.auth.service.impl;
 
 import com.appsdeveloperblog.ws.urlshorten.auth.exception.AuthenticationException;
 import com.appsdeveloperblog.ws.urlshorten.auth.exception.EmailAlreadyExistsException;
+import com.appsdeveloperblog.ws.urlshorten.auth.model.dto.AuthenticatedUser;
+import com.appsdeveloperblog.ws.urlshorten.auth.model.dto.response.SignInResponse;
+import com.appsdeveloperblog.ws.urlshorten.auth.service.AccessTokenService;
+import com.appsdeveloperblog.ws.urlshorten.auth.service.PasswordResetTokenService;
+import com.appsdeveloperblog.ws.urlshorten.auth.service.RedisService;
 import com.appsdeveloperblog.ws.urlshorten.auth.validation.PasswordPolicy;
 import java.util.Locale;
 import com.appsdeveloperblog.ws.urlshorten.auth.model.dto.request.SignInRequest;
@@ -16,6 +21,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -39,12 +45,20 @@ public class AuthenticationServiceImpl implements AuthenticationService {
   private final SecurityContextHolderStrategy securityContextHolderStrategy =
           SecurityContextHolder.getContextHolderStrategy();
   private final SecurityContextRepository securityContextRepository;
+  private final AccessTokenService accessTokenService;
+  private final PasswordResetTokenService passwordResetTokenService;
+  private final RedisService redisService;
+
+  @Value("${app.jwt.acc_token_expiration}")
+  private Long refreshTokenExpiration;
+
+
 
   @Override
   @Transactional
   public void signUp(SignUpRequest request, HttpServletRequest httpServletRequest) {
      validatePassword(request.getPassword());
-     applyRateLimit(request, httpServletRequest);
+//     applyRateLimit(request, httpServletRequest);
      User user = new User();
      String hashedPassword = passwordEncoder.encode(request.getPassword());
      user.setEmail(request.getEmail());
@@ -89,12 +103,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
   }
 
   @Override
-  public void signIn(SignInRequest signInRequest, HttpServletRequest request, HttpServletResponse response) {
+  public SignInResponse signIn(SignInRequest signInRequest, HttpServletRequest request, HttpServletResponse response) {
     if(signInRequest == null || StringUtils.isBlank(signInRequest.getEmail()) || StringUtils.isBlank(signInRequest.getPassword())) {
         throw new IllegalArgumentException();
     }
 
-    signInRateLimitService.checkIpRateLimit(request);
+//    signInRateLimitService.checkIpRateLimit(request);
 
     UsernamePasswordAuthenticationToken token = UsernamePasswordAuthenticationToken.unauthenticated(
             signInRequest.getEmail().trim().toLowerCase(Locale.ROOT), signInRequest.getPassword());
@@ -103,14 +117,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     try {
       authentication = authenticationManager.authenticate(token);
     } catch (org.springframework.security.core.AuthenticationException exception) {
-      signInRateLimitService.recordFailedAuthentication(request);
+//      signInRateLimitService.recordFailedAuthentication(request);
       throw new AuthenticationException();
     }
-
-    SecurityContext context = securityContextHolderStrategy.createEmptyContext();
-    context.setAuthentication(authentication);
-    securityContextHolderStrategy.setContext(context);
-    securityContextRepository.saveContext(context, request, response);
-
+    AuthenticatedUser authenticatedUser = (AuthenticatedUser) authentication.getPrincipal();
+    String accessToken = accessTokenService.create(authenticatedUser.getUserId());
+    String refreshToken = passwordResetTokenService.createRandomRefreshToken();
+    redisService.saveRefreshToken(refreshToken, refreshTokenExpiration);
+    return new SignInResponse(accessToken, refreshToken);
   }
 }

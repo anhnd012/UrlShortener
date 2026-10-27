@@ -2,6 +2,7 @@ package com.appsdeveloperblog.ws.urlshorten.url.service.impl;
 
 import com.appsdeveloperblog.ws.urlshorten.auth.model.entity.User;
 import com.appsdeveloperblog.ws.urlshorten.auth.repository.UserRepository;
+import com.appsdeveloperblog.ws.urlshorten.auth.service.UserProfileService;
 import com.appsdeveloperblog.ws.urlshorten.url.entity.ShortUrl;
 import com.appsdeveloperblog.ws.urlshorten.url.event.ShortUrlClickedEvent;
 import com.appsdeveloperblog.ws.urlshorten.url.exception.InvalidUrlException;
@@ -20,10 +21,10 @@ import com.appsdeveloperblog.ws.urlshorten.url.util.ShortUrlUtil;
 import java.net.URI;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -54,13 +55,14 @@ public class UrlServiceImpl implements UrlService {
   private String baseUrl;
 
   @Override
-  public CreateUrlResponse createShortUrl(CreateUrlRequest request) {
-    String normalizedLongUrl = validateAndNormalize(request);
+  public CreateUrlResponse createShortUrl(CreateUrlRequest request, UUID userId, UUID workplaceId) {
+    String normalizedLongUrl = getNormalizedLongUrl(request.getLongUrl());
     for (int attempt = 1; attempt <= MAX_RETRY; attempt++) {
       String shortCode = generateRandomBase62(8);
-
+      User currentUser = userRepository.findById(userId).orElse(null);
+      Workplace currentWorkplace = workplaceRepository.findById(workplaceId).orElse(null);
       try {
-        ShortUrl entity = buildShortUrlEntity(shortCode, normalizedLongUrl, request.getWorkplaceId());
+        ShortUrl entity = buildShortUrlEntity(shortCode, normalizedLongUrl, currentWorkplace, currentUser);
         String shortUrl = ShortUrlUtil.buildShortUrl(baseUrl, shortCode);
         urlRepository.saveAndFlush(entity);
 
@@ -90,7 +92,7 @@ public class UrlServiceImpl implements UrlService {
     return trimmedUrl;
   }
 
-  private boolean isValidUrl(URI uri) {
+  private boolean isValidUri(URI uri) {
     String host = uri.getHost();
     if (!StringUtils.hasText(host) || !StringUtils.hasText(uri.getPath())) {
       return false;
@@ -116,12 +118,9 @@ public class UrlServiceImpl implements UrlService {
     return sb.toString();
   }
 
-  private ShortUrl buildShortUrlEntity(String shortCode, String normalizedLongUrl, UUID workplaceId) {
+  private ShortUrl buildShortUrlEntity(String shortCode, String normalizedLongUrl, Workplace workplace, User currentUser) {
     Instant now = Instant.now();
     Instant expiresAt = now.plus(30, ChronoUnit.DAYS);
-
-    User owner = getOrCreateDefaultOwner();
-    Workplace workplace = resolveWorkplace(workplaceId, owner.getId());
 
     ShortUrl entity = new ShortUrl();
     entity.setShortCode(shortCode);
@@ -130,60 +129,64 @@ public class UrlServiceImpl implements UrlService {
     entity.setValidFrom(now);
     entity.setExpiresAt(expiresAt);
     entity.setNumberOfClicks(0L);
-    entity.setOwner(owner);
+    entity.setOwner(currentUser);
     entity.setWorkplace(workplace);
     return entity;
   }
+  // 1. Naming và purpose: Hàm này có tên mơ hồ chung chung (không thể hiện resource trả về)
+  // bản chất hàm này là làm sạch url rồi kiểm tra nó có valid hay không thôi
+  // Tên mình đề xuất validateNormalizedLongUrl()
+  // 2. Interface và parameter: (parameter thì chỉ có 1 biến (ổn) nhưng thực chất nó chỉ lấy mỗi longUrl thay vì tất cả properties trong object
+  // thế nên lấy ra 1 properties thay vì truyền hẳn 1 object vào
+  // Theo như kiến thức mà bạn nói thì hàm này có mức độ abstraction không đồng đều,sau khi tạo normalize nó còn validate normalize
+  // trong hàm này có 2 lần validate 1 cái cho normalize còn 1 cái validate uri, bạn đánh giá cách handle exception này thế nào
+  // 3. Defensive programming và xử lý lỗi:
+  // + Không có sử dụng biến boolean (tốt)
+  // + Parameter không vượt quá 7
+  // + Validate input đầu vào (chưa làm, lỡ request rỗng hay longUrl null/rỗng thì sao)
+  // + Xử lý lỗi, mình đang không biết review như thế nào?
+  // 4. Control structure and complexity
+  // + Nesting level: Không có câu điều kiện hay vòng lặp vượt quá 3
+  // + Điểm quyết định: Ở đây có 2 điểm thôi nhỉ (đoạn  if (normalizedLongUrl.length() > MAX_ALLOWED_CHARACTERS) và if (!isValidUrl(uri))
+  // + Luồng chính rõ ràng (nominal path): mình đang không biết nên review như thế nào
+  // 5. Understanding, code comment and remove unused code
+  // + Code comment chưa có
 
-  private Workplace resolveWorkplace(UUID requestedWorkplaceId, UUID ownerId) {
-    if (requestedWorkplaceId != null) {
-      return workplaceRepository.findById(requestedWorkplaceId).orElse(null);
+  private String getNormalizedLongUrl(String longUrl) {
+    if(!StringUtils.hasLength(longUrl)) {
+      throw new InvalidUrlException("Invalid long url: long url must not be empty or null");
     }
+    String normalizedLongUrl = normalizeUrl(longUrl);
 
-    List<Workplace> userWorkplaces = workplaceRepository.findAllByMemberUserId(ownerId);
-    if (!userWorkplaces.isEmpty()) {
-      return userWorkplaces.get(0);
-    }
-
-    List<Workplace> allWorkplaces = workplaceRepository.findAll();
-    return allWorkplaces.isEmpty() ? null : allWorkplaces.get(0);
-  }
-
-  private User getOrCreateDefaultOwner() {
-    return userRepository
-        .findAll()
-        .stream()
-        .findFirst()
-        .orElseGet(
-            () -> {
-              User defaultUser = new User();
-              defaultUser.setEmail("user@example.com");
-              defaultUser.setPasswordHash("$2a$10$defaultPasswordHashPlaceholder1234567890");
-              defaultUser.setName("LinkFlow User");
-              return userRepository.saveAndFlush(defaultUser);
-            });
-  }
-
-  private String validateAndNormalize(CreateUrlRequest request) {
-    String normalizedLongUrl = normalizeUrl(request.getLongUrl());
-    if (normalizedLongUrl.length() > MAX_ALLOWED_CHARACTERS) {
-      throw new InvalidUrlException(request.getLongUrl());
-    }
-
-    try {
-      URI uri = URI.create(normalizedLongUrl);
-      if (!isValidUrl(uri)) {
-        throw new InvalidUrlException(request.getLongUrl());
-      }
-    } catch (IllegalArgumentException e) {
-      throw new InvalidUrlException(request.getLongUrl());
+    if(!isValidUrl(normalizedLongUrl)) {
+      throw new InvalidUrlException("Invalid URL format: Long URL must be a valid HTTP/HTTPS address and under 2048 characters.");
     }
 
     return normalizedLongUrl;
   }
 
+  private boolean isValidUrl(String longUrl) {
+    if (longUrl.length() > MAX_ALLOWED_CHARACTERS) {
+//      "Exceed valid length: normalized long url exceed maximum allowed characters (2048)."
+      return false;
+    }
+
+    try {
+      URI uri = URI.create(longUrl);
+      if (!isValidUri(uri)) {
+//    "Invalid host url: normalized long url has invalid host."
+        return false;
+      }
+    } catch (IllegalArgumentException e) {
+//     "Uri creation error: cannot create url from normalized long url"
+      return false;
+    }
+
+    return true;
+  }
+
   @Override
-  public Optional<String> redirectShortUrl(String shortCode) {
+  public Optional<String> getValidLongUrl(String shortCode) {
     Optional<String> cachedLongUrl = redirectCacheService.getLongUrl(shortCode);
     ShortUrlClickedEvent clickedEvent =
         new ShortUrlClickedEvent(UUID.randomUUID(), shortCode, Instant.now(), 1);

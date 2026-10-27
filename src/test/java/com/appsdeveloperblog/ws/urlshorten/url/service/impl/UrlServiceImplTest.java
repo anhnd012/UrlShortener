@@ -3,6 +3,7 @@ package com.appsdeveloperblog.ws.urlshorten.url.service.impl;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -11,6 +12,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.appsdeveloperblog.ws.urlshorten.auth.model.entity.User;
+import com.appsdeveloperblog.ws.urlshorten.auth.repository.UserRepository;
 import com.appsdeveloperblog.ws.urlshorten.url.entity.ShortUrl;
 import com.appsdeveloperblog.ws.urlshorten.url.exception.InvalidUrlException;
 import com.appsdeveloperblog.ws.urlshorten.url.exception.UrlRetryException;
@@ -23,6 +26,8 @@ import com.appsdeveloperblog.ws.urlshorten.url.model.response.ListUrlResponse;
 import com.appsdeveloperblog.ws.urlshorten.url.model.response.ShortUrlAnalyticResponse;
 import com.appsdeveloperblog.ws.urlshorten.url.repository.UrlRepository;
 import com.appsdeveloperblog.ws.urlshorten.url.service.RedirectCacheService;
+import com.appsdeveloperblog.ws.urlshorten.workplace.model.entity.Workplace;
+import com.appsdeveloperblog.ws.urlshorten.workplace.repository.WorkplaceRepository;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -37,52 +42,65 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
-import com.appsdeveloperblog.ws.urlshorten.auth.model.entity.User;
-import com.appsdeveloperblog.ws.urlshorten.auth.repository.UserRepository;
-import com.appsdeveloperblog.ws.urlshorten.workplace.repository.WorkplaceRepository;
 import org.springframework.test.util.ReflectionTestUtils;
 
 class UrlServiceImplTest {
 
   private UrlRepository urlRepository;
-  private UserRepository userRepository;
   private WorkplaceRepository workplaceRepository;
   private UrlServiceImpl urlService;
   private RedirectCacheService redirectCacheService;
   private ClickEventPublisher clickEventPublisher;
   private ShortUrlMapper shortUrlMapper;
+  private UserRepository userRepository;
+  private UUID userId;
+  private UUID workplaceId;
+  private User owner;
+  private Workplace workplace;
 
   @BeforeEach
   void setUp() {
     urlRepository = mock(UrlRepository.class);
-    userRepository = mock(UserRepository.class);
     workplaceRepository = mock(WorkplaceRepository.class);
     redirectCacheService = mock(RedirectCacheService.class);
     clickEventPublisher = mock(ClickEventPublisher.class);
     shortUrlMapper = mock(ShortUrlMapper.class);
+    userRepository = mock(UserRepository.class);
 
-    User defaultOwner = new User();
-    defaultOwner.setEmail("user@example.com");
-    ReflectionTestUtils.setField(defaultOwner, "id", UUID.randomUUID());
-    when(userRepository.findAll()).thenReturn(List.of(defaultOwner));
-
+    userId = UUID.randomUUID();
+    workplaceId = UUID.randomUUID();
+    owner = new User();
+    owner.setEmail("user@example.com");
+    ReflectionTestUtils.setField(owner, "id", userId);
+    workplace = new Workplace();
+    ReflectionTestUtils.setField(workplace, "id", workplaceId);
+    when(userRepository.findById(userId)).thenReturn(Optional.of(owner));
+    when(workplaceRepository.findById(workplaceId)).thenReturn(Optional.of(workplace));
     urlService =
         new UrlServiceImpl(
-            urlRepository, userRepository, workplaceRepository, redirectCacheService, clickEventPublisher, shortUrlMapper);
+            urlRepository,
+            userRepository,
+            workplaceRepository,
+            redirectCacheService,
+            clickEventPublisher,
+            shortUrlMapper);
     ReflectionTestUtils.setField(urlService, "baseUrl", "https://short.ly");
   }
 
   @Test
   void createShortUrlWhenLongUrlIsValidCreatesActiveShortUrlAndPersistsIt() {
     CreateUrlRequest request = createRequest("https://www.google.com/search?q=spring+boot");
-
-    CreateUrlResponse response = urlService.createShortUrl(request);
+    CreateUrlResponse response = urlService.createShortUrl(request, userId, workplaceId);
 
     ArgumentCaptor<ShortUrl> shortUrlCaptor = ArgumentCaptor.forClass(ShortUrl.class);
     verify(urlRepository).saveAndFlush(shortUrlCaptor.capture());
     ShortUrl savedShortUrl = shortUrlCaptor.getValue();
+    verify(userRepository).findById(userId);
+    verify(workplaceRepository).findById(workplaceId);
 
     assertAll(
+        () -> assertSame(owner, savedShortUrl.getOwner()),
+        () -> assertSame(workplace, savedShortUrl.getWorkplace()),
         () -> assertNotNull(response.getShortCode(), "shortCode should not be null"),
         () -> assertEquals(8, response.getShortCode().length(), "shortCode length should be 8"),
         () ->
@@ -132,8 +150,7 @@ class UrlServiceImplTest {
   @Test
   void createShortUrlWhenLongUrlHasNoProtocolNormalizesToHttpsBeforePersisting() {
     CreateUrlRequest request = createRequest("jakob.com/java-date-time");
-
-    CreateUrlResponse response = urlService.createShortUrl(request);
+    CreateUrlResponse response = urlService.createShortUrl(request, userId, workplaceId);
 
     ArgumentCaptor<ShortUrl> shortUrlCaptor = ArgumentCaptor.forClass(ShortUrl.class);
     verify(urlRepository).saveAndFlush(shortUrlCaptor.capture());
@@ -150,7 +167,7 @@ class UrlServiceImplTest {
   void createShortUrlWhenLongUrlUsesHttpKeepsOriginalProtocol() {
     CreateUrlRequest request = createRequest("http://example.com/article");
 
-    urlService.createShortUrl(request);
+    urlService.createShortUrl(request, userId, workplaceId);
 
     ArgumentCaptor<ShortUrl> shortUrlCaptor = ArgumentCaptor.forClass(ShortUrl.class);
     verify(urlRepository).saveAndFlush(shortUrlCaptor.capture());
@@ -169,7 +186,8 @@ class UrlServiceImplTest {
   void createShortUrlWhenUrlIsNotPublicOrHasNoPathRejectsIt(String longUrl) {
     CreateUrlRequest request = createRequest(longUrl);
 
-    assertThrows(InvalidUrlException.class, () -> urlService.createShortUrl(request));
+    assertThrows(
+        InvalidUrlException.class, () -> urlService.createShortUrl(request, userId, workplaceId));
 
     verify(urlRepository, never()).saveAndFlush(org.mockito.ArgumentMatchers.any(ShortUrl.class));
   }
@@ -179,17 +197,22 @@ class UrlServiceImplTest {
     CreateUrlRequest request = createRequest("abc def %%%");
 
     InvalidUrlException exception =
-        assertThrows(InvalidUrlException.class, () -> urlService.createShortUrl(request));
+        assertThrows(
+            InvalidUrlException.class,
+            () -> urlService.createShortUrl(request, userId, workplaceId));
 
-    assertEquals("Url is invalid: " + request.getLongUrl(), exception.getMessage());
-    verify(urlRepository, never()).save(org.mockito.ArgumentMatchers.any(ShortUrl.class));
+    assertEquals(
+        "Url is invalid: Invalid URL format: Long URL must be a valid HTTP/HTTPS address and under 2048 characters.",
+        exception.getMessage());
+    verify(urlRepository, never()).saveAndFlush(org.mockito.ArgumentMatchers.any(ShortUrl.class));
   }
 
   @Test
   void createShortUrlWhenLongUrlExceedsMaximumLengthRejectsIt() {
     CreateUrlRequest request = createRequest("https://example.com/" + "a".repeat(2049));
 
-    assertThrows(InvalidUrlException.class, () -> urlService.createShortUrl(request));
+    assertThrows(
+        InvalidUrlException.class, () -> urlService.createShortUrl(request, userId, workplaceId));
 
     verify(urlRepository, never()).saveAndFlush(org.mockito.ArgumentMatchers.any(ShortUrl.class));
   }
@@ -201,7 +224,7 @@ class UrlServiceImplTest {
         .thenThrow(new DataIntegrityViolationException("short code collision"))
         .thenAnswer(invocation -> invocation.getArgument(0));
 
-    CreateUrlResponse response = urlService.createShortUrl(request);
+    CreateUrlResponse response = urlService.createShortUrl(request, userId, workplaceId);
 
     assertNotNull(response);
     verify(urlRepository, times(2)).saveAndFlush(org.mockito.ArgumentMatchers.any(ShortUrl.class));
@@ -214,7 +237,8 @@ class UrlServiceImplTest {
         .thenThrow(new DataIntegrityViolationException("short code collision"));
 
     UrlRetryException exception =
-        assertThrows(UrlRetryException.class, () -> urlService.createShortUrl(request));
+        assertThrows(
+            UrlRetryException.class, () -> urlService.createShortUrl(request, userId, workplaceId));
 
     assertEquals(
         "Can not create short url based on: " + request.getLongUrl(), exception.getMessage());
@@ -238,35 +262,35 @@ class UrlServiceImplTest {
             Instant.now().plus(30, ChronoUnit.DAYS));
     when(urlRepository.getByShortCode(shortCode)).thenReturn(shortUrl);
 
-    Optional<String> response = urlService.redirectShortUrl(shortCode);
+    Optional<String> response = urlService.getValidLongUrl(shortCode);
 
     assertAll(() -> assertEquals("https://www.youtube.com/watch?v=spring", response.get()));
   }
 
   @Test
-  void redirectShortUrlWhenCacheContainsUrlDoesNotQueryDatabase() {
+  void getValidLongUrlWhenCacheContainsUrlDoesNotQueryDatabase() {
     String shortCode = "aB12xYz9";
     when(redirectCacheService.getLongUrl(shortCode))
         .thenReturn(Optional.of("https://example.com/cached"));
 
-    Optional<String> response = urlService.redirectShortUrl(shortCode);
+    Optional<String> response = urlService.getValidLongUrl(shortCode);
 
     assertEquals(Optional.of("https://example.com/cached"), response);
     verify(urlRepository, never()).getByShortCode(shortCode);
   }
 
   @Test
-  void redirectShortUrlWhenShortCodeDoesNotExistReturnsInvalid() {
+  void getValidLongCodeDoesNotExistReturnsInvalid() {
     String shortCode = "notFound";
     when(urlRepository.getByShortCode(shortCode)).thenReturn(null);
 
-    Optional<String> response = urlService.redirectShortUrl(shortCode);
+    Optional<String> response = urlService.getValidLongUrl(shortCode);
 
     assertAll(() -> assertTrue(response.isEmpty()));
   }
 
   @Test
-  void redirectShortUrlWhenShortUrlIsExpiredReturnsInvalid() {
+  void getValidLongUrlIsExpiredReturnsInvalid() {
     String shortCode = "old12345";
     ShortUrl shortUrl =
         createShortUrl(
@@ -276,13 +300,13 @@ class UrlServiceImplTest {
             Instant.now().minus(1, ChronoUnit.SECONDS));
     when(urlRepository.getByShortCode(shortCode)).thenReturn(shortUrl);
 
-    Optional<String> response = urlService.redirectShortUrl(shortCode);
+    Optional<String> response = urlService.getValidLongUrl(shortCode);
 
     assertTrue(response.isEmpty());
   }
 
   @Test
-  void redirectShortUrlWhenShortUrlIsDisabledReturnsInvalid() {
+  void getValidLongUrlIsDisabledReturnsInvalid() {
     String shortCode = "off12345";
     ShortUrl shortUrl =
         createShortUrl(
@@ -292,7 +316,7 @@ class UrlServiceImplTest {
             Instant.now().plus(30, ChronoUnit.DAYS));
     when(urlRepository.getByShortCode(shortCode)).thenReturn(shortUrl);
 
-    Optional<String> response = urlService.redirectShortUrl(shortCode);
+    Optional<String> response = urlService.getValidLongUrl(shortCode);
 
     assertTrue(response.isEmpty());
   }

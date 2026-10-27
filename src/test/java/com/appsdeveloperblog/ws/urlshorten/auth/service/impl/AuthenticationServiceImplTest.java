@@ -18,6 +18,9 @@ import com.appsdeveloperblog.ws.urlshorten.auth.exception.ExceedRateLimitExcepti
 import com.appsdeveloperblog.ws.urlshorten.auth.exception.InvalidPasswordException;
 import com.appsdeveloperblog.ws.urlshorten.auth.model.dto.request.SignInRequest;
 import com.appsdeveloperblog.ws.urlshorten.auth.repository.UserRepository;
+import com.appsdeveloperblog.ws.urlshorten.auth.service.AccessTokenService;
+import com.appsdeveloperblog.ws.urlshorten.auth.service.PasswordResetTokenService;
+import com.appsdeveloperblog.ws.urlshorten.auth.service.RedisService;
 import com.appsdeveloperblog.ws.urlshorten.auth.service.SignInRateLimitService;
 import com.appsdeveloperblog.ws.urlshorten.auth.service.SignUpRateLimitService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -40,6 +43,9 @@ class AuthenticationServiceImplTest {
   private SignInRateLimitService signInRateLimitService;
   private AuthenticationManager authenticationManager;
   private SecurityContextRepository securityContextRepository;
+  private RedisService redisService;
+  private PasswordResetTokenService passwordResetTokenService;
+  private AccessTokenService accessTokenService;
 
   @BeforeEach
   void setUp() {
@@ -50,6 +56,9 @@ class AuthenticationServiceImplTest {
     signInRateLimitService = mock(SignInRateLimitService.class);
     authenticationManager = mock(AuthenticationManager.class);
     securityContextRepository = mock(SecurityContextRepository.class);
+    redisService = mock(RedisService.class);
+    passwordResetTokenService = mock(PasswordResetTokenService.class);
+    accessTokenService = mock(AccessTokenService.class);
     authenticationService =
         new AuthenticationServiceImpl(
             passwordEncoder,
@@ -57,7 +66,11 @@ class AuthenticationServiceImplTest {
             signupRateLimitService,
             signInRateLimitService,
             authenticationManager,
-            securityContextRepository);
+            securityContextRepository,
+                accessTokenService,
+                passwordResetTokenService,
+                redisService
+                );
   }
 
   @AfterEach

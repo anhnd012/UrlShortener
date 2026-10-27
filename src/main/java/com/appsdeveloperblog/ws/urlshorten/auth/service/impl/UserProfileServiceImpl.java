@@ -8,6 +8,8 @@ import com.appsdeveloperblog.ws.urlshorten.auth.service.UserProfileService;
 import com.appsdeveloperblog.ws.urlshorten.storage.service.FileStorageService;
 import java.time.Instant;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -23,14 +25,14 @@ public class UserProfileServiceImpl implements UserProfileService {
   @Override
   @Transactional(readOnly = true)
   public UserProfileResponse getCurrentProfile() {
-    User currentUser = getCurrentOrCreateDefaultUser();
+    User currentUser = getCurrentUser();
     return mapToProfileResponse(currentUser);
   }
 
   @Override
   @Transactional
   public UserProfileResponse updateProfile(UpdateUserProfileRequest request) {
-    User currentUser = getCurrentOrCreateDefaultUser();
+    User currentUser = getCurrentUser();
 
     currentUser.setName(request.getName().trim());
     if (StringUtils.hasText(request.getImageUrl())) {
@@ -44,7 +46,7 @@ public class UserProfileServiceImpl implements UserProfileService {
   @Override
   @Transactional
   public UserProfileResponse uploadAvatar(MultipartFile file) {
-    User currentUser = getCurrentOrCreateDefaultUser();
+    User currentUser = getCurrentUser();
 
     if (StringUtils.hasText(currentUser.getImageUrl())) {
       fileStorageService.deleteFile(currentUser.getImageUrl());
@@ -60,7 +62,7 @@ public class UserProfileServiceImpl implements UserProfileService {
   @Override
   @Transactional
   public UserProfileResponse removeAvatar() {
-    User currentUser = getCurrentOrCreateDefaultUser();
+    User currentUser = getCurrentUser();
 
     if (StringUtils.hasText(currentUser.getImageUrl())) {
       fileStorageService.deleteFile(currentUser.getImageUrl());
@@ -101,18 +103,18 @@ public class UserProfileServiceImpl implements UserProfileService {
     return "User";
   }
 
-  private User getCurrentOrCreateDefaultUser() {
-    return userRepository
-        .findAll()
-        .stream()
-        .findFirst()
-        .orElseGet(
-            () -> {
-              User defaultUser = new User();
-              defaultUser.setEmail("user@example.com");
-              defaultUser.setPasswordHash("$2a$10$defaultPasswordHashPlaceholder1234567890");
-              defaultUser.setName(null); // Initially no custom name, so defaults to email prefix
-              return userRepository.saveAndFlush(defaultUser);
-            });
+  @Override
+  public User getCurrentUser() {
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    if(authentication == null) {
+      return null;
+    }
+
+    String email = authentication.getName();
+    User currentUser = userRepository.findByEmail(email).orElse(null);
+
+    return currentUser;
   }
+
+
 }

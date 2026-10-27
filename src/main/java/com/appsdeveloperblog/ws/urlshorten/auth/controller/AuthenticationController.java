@@ -4,13 +4,17 @@ import com.appsdeveloperblog.ws.urlshorten.auth.model.dto.request.ForgotPassword
 import com.appsdeveloperblog.ws.urlshorten.auth.model.dto.request.ResetPasswordRequest;
 import com.appsdeveloperblog.ws.urlshorten.auth.model.dto.request.SignInRequest;
 import com.appsdeveloperblog.ws.urlshorten.auth.model.dto.request.SignUpRequest;
+import com.appsdeveloperblog.ws.urlshorten.auth.model.dto.response.SignInResponse;
 import com.appsdeveloperblog.ws.urlshorten.auth.service.AuthenticationService;
 import com.appsdeveloperblog.ws.urlshorten.auth.service.PasswordResetService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpCookie;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -24,7 +28,7 @@ public class AuthenticationController {
     private final AuthenticationService authenticationService;
     private final PasswordResetService passwordResetService;
 
-    @PostMapping("/signup")
+    @PostMapping("/register")
     public ResponseEntity<Void> signUp(@RequestBody @Valid SignUpRequest request,
                                        HttpServletRequest httpServletRequest) {
         authenticationService.signUp(request, httpServletRequest);
@@ -32,11 +36,18 @@ public class AuthenticationController {
     }
 
     @PostMapping("/signin")
-    public ResponseEntity<Void> signIn(@RequestBody @Valid SignInRequest signInRequest,
+    public ResponseEntity<String> signIn(@RequestBody @Valid SignInRequest signInRequest,
                                        HttpServletRequest request,
                                        HttpServletResponse response) {
-        authenticationService.signIn(signInRequest, request, response);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+        SignInResponse signInResponse = authenticationService.signIn(signInRequest, request, response);
+        ResponseCookie cookie = ResponseCookie.from("refresh_token", signInResponse.getRefreshToken())
+                .httpOnly(true)
+                .path("/")
+                .sameSite("Lax")
+                .build();
+
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+        return ResponseEntity.status(HttpStatus.CREATED).body(signInResponse.getAccessToken());
     }
 
     @PostMapping("/forgot-password")
