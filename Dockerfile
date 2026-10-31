@@ -5,7 +5,7 @@ FROM eclipse-temurin:21-jre
 WORKDIR /app
 
 # 3. Copy file JAR vào image
-COPY target/link-flow-0.0.1-SNAPSHOT.jar app.jar
+COPY target/UrlShorten-0.0.1-SNAPSHOT.jar app.jar
 
 # 4. Khai báo cổng ứng dụng
 EXPOSE 8080
