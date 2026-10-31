@@ -7,6 +7,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 public interface AuthenticationService {
-    void signUp(SignUpRequest request, HttpServletRequest httpServletRequest);
-    SignInResponse signIn(SignInRequest signInRequest, HttpServletRequest request, HttpServletResponse response);
+  void signUp(SignUpRequest request, HttpServletRequest httpServletRequest);
+
+  SignInResponse signIn(
+      SignInRequest signInRequest, HttpServletRequest request, HttpServletResponse response);
 }

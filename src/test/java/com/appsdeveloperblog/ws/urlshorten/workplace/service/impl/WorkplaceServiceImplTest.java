@@ -10,6 +10,8 @@ import static org.mockito.Mockito.when;
 
 import com.appsdeveloperblog.ws.urlshorten.auth.model.entity.User;
 import com.appsdeveloperblog.ws.urlshorten.auth.repository.UserRepository;
+import com.appsdeveloperblog.ws.urlshorten.url.mapper.ShortUrlMapper;
+import com.appsdeveloperblog.ws.urlshorten.url.repository.UrlRepository;
 import com.appsdeveloperblog.ws.urlshorten.workplace.exception.MemberAlreadyExistsException;
 import com.appsdeveloperblog.ws.urlshorten.workplace.exception.WorkplaceNotFoundException;
 import com.appsdeveloperblog.ws.urlshorten.workplace.model.dto.request.CreateWorkplaceRequest;
@@ -22,8 +24,6 @@ import com.appsdeveloperblog.ws.urlshorten.workplace.model.entity.WorkplaceMembe
 import com.appsdeveloperblog.ws.urlshorten.workplace.model.enums.WorkplaceRole;
 import com.appsdeveloperblog.ws.urlshorten.workplace.repository.WorkplaceMemberRepository;
 import com.appsdeveloperblog.ws.urlshorten.workplace.repository.WorkplaceRepository;
-import com.appsdeveloperblog.ws.urlshorten.url.mapper.ShortUrlMapper;
-import com.appsdeveloperblog.ws.urlshorten.url.repository.UrlRepository;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -49,7 +49,11 @@ class WorkplaceServiceImplTest {
     shortUrlMapper = mock(ShortUrlMapper.class);
     workplaceService =
         new WorkplaceServiceImpl(
-            workplaceRepository, workplaceMemberRepository, userRepository, urlRepository, shortUrlMapper);
+            workplaceRepository,
+            workplaceMemberRepository,
+            userRepository,
+            urlRepository,
+            shortUrlMapper);
   }
 
   @Test
@@ -88,8 +92,7 @@ class WorkplaceServiceImplTest {
     UUID randomId = UUID.randomUUID();
     when(workplaceRepository.findByIdWithMembers(randomId)).thenReturn(Optional.empty());
 
-    assertThrows(
-        WorkplaceNotFoundException.class, () -> workplaceService.getWorkplace(randomId));
+    assertThrows(WorkplaceNotFoundException.class, () -> workplaceService.getWorkplace(randomId));
   }
 
   @Test
@@ -149,7 +152,8 @@ class WorkplaceServiceImplTest {
               return m;
             });
 
-    InviteMemberRequest request = InviteMemberRequest.builder().email("teammate@example.com").build();
+    InviteMemberRequest request =
+        InviteMemberRequest.builder().email("teammate@example.com").build();
     WorkplaceMemberResponse response = workplaceService.inviteMember(workplaceId, request);
 
     assertAll(
@@ -178,7 +182,8 @@ class WorkplaceServiceImplTest {
     when(workplaceMemberRepository.findByWorkplace_IdAndUser_Id(workplaceId, existingUser.getId()))
         .thenReturn(Optional.of(member));
 
-    InviteMemberRequest request = InviteMemberRequest.builder().email("existing@example.com").build();
+    InviteMemberRequest request =
+        InviteMemberRequest.builder().email("existing@example.com").build();
 
     assertThrows(
         MemberAlreadyExistsException.class,

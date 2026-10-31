@@ -11,10 +11,13 @@ import org.springframework.data.repository.query.Param;
 public interface ProcessedClickEventRepository extends JpaRepository<ProcessedClickEvent, UUID> {
   @Modifying
   @Query(
-      """
-    INSERT INTO ProcessedClickEvent(eventId, shortCode, processedAt)
-    VALUES(:event_id, :short_code, :processed_at)
-    """)
+      value =
+          """
+          INSERT INTO processed_click_event(event_id, short_code, processed_at)
+          VALUES(:event_id, :short_code, :processed_at)
+          ON CONFLICT (event_id) DO NOTHING
+          """,
+      nativeQuery = true)
   int increasingClickEvents(
       @Param("event_id") UUID eventId,
       @Param("short_code") String shortCode,

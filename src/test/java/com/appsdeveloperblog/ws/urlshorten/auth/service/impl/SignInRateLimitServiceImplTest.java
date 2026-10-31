@@ -53,8 +53,7 @@ class SignInRateLimitServiceImplTest {
   void checkRejectsRequestWhenLimitHasBeenReached() {
     when(valueOperations.get(REDIS_KEY)).thenReturn("5");
 
-    assertThrows(
-        ExceedRateLimitException.class, () -> rateLimitService.checkIpRateLimit(request));
+    assertThrows(ExceedRateLimitException.class, () -> rateLimitService.checkIpRateLimit(request));
 
     verify(valueOperations, never()).increment(REDIS_KEY);
   }

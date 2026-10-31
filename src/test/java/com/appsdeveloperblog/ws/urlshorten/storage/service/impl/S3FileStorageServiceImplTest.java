@@ -60,8 +60,7 @@ class S3FileStorageServiceImplTest {
         new MockMultipartFile("file", "empty.png", "image/png", new byte[0]);
 
     assertThrows(
-        IllegalArgumentException.class,
-        () -> fileStorageService.uploadFile(emptyFile, "avatars"));
+        IllegalArgumentException.class, () -> fileStorageService.uploadFile(emptyFile, "avatars"));
   }
 
   @Test
@@ -70,8 +69,7 @@ class S3FileStorageServiceImplTest {
         new MockMultipartFile("file", "test.txt", "text/plain", "hello".getBytes());
 
     assertThrows(
-        IllegalArgumentException.class,
-        () -> fileStorageService.uploadFile(textFile, "avatars"));
+        IllegalArgumentException.class, () -> fileStorageService.uploadFile(textFile, "avatars"));
   }
 
   @Test

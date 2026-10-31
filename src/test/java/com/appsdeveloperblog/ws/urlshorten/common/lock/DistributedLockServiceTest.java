@@ -66,9 +66,7 @@ class DistributedLockServiceTest {
   void releaseLockExecutesLuaScript() {
     lockService.releaseLock("lock:test", "val-123");
 
-    verify(redisTemplate).execute(
-        any(RedisScript.class),
-        eq(Collections.singletonList("lock:test")),
-        eq("val-123"));
+    verify(redisTemplate)
+        .execute(any(RedisScript.class), eq(Collections.singletonList("lock:test")), eq("val-123"));
   }
 }

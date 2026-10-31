@@ -39,13 +39,15 @@ public class S3FileStorageServiceImpl implements FileStorageService {
     }
 
     String contentType = file.getContentType();
-    if (contentType == null || !ALLOWED_CONTENT_TYPES.contains(contentType.toLowerCase(Locale.ROOT))) {
+    if (contentType == null
+        || !ALLOWED_CONTENT_TYPES.contains(contentType.toLowerCase(Locale.ROOT))) {
       throw new IllegalArgumentException("Only image files (PNG, JPG, WebP, GIF) are allowed.");
     }
 
     String originalFilename = file.getOriginalFilename();
     String extension = extractExtension(originalFilename);
-    String sanitizedFolder = (folder != null && !folder.isBlank()) ? folder.trim().replaceAll("^/+|/+$", "") : "uploads";
+    String sanitizedFolder =
+        (folder != null && !folder.isBlank()) ? folder.trim().replaceAll("^/+|/+$", "") : "uploads";
     String key = sanitizedFolder + "/" + UUID.randomUUID() + extension;
 
     try {
@@ -56,8 +58,12 @@ public class S3FileStorageServiceImpl implements FileStorageService {
               .contentType(contentType)
               .build();
 
-      s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
-      log.info("Uploaded file successfully to S3 bucket '{}' with key '{}'.", s3StorageConfig.getBucketName(), key);
+      s3Client.putObject(
+          putObjectRequest, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
+      log.info(
+          "Uploaded file successfully to S3 bucket '{}' with key '{}'.",
+          s3StorageConfig.getBucketName(),
+          key);
 
       String endpoint = s3StorageConfig.getEndpoint().replaceAll("/+$", "");
       return endpoint + "/" + s3StorageConfig.getBucketName() + "/" + key;
@@ -87,10 +93,7 @@ public class S3FileStorageServiceImpl implements FileStorageService {
       }
 
       DeleteObjectRequest deleteObjectRequest =
-          DeleteObjectRequest.builder()
-              .bucket(bucketName)
-              .key(key)
-              .build();
+          DeleteObjectRequest.builder().bucket(bucketName).key(key).build();
 
       s3Client.deleteObject(deleteObjectRequest);
       log.info("Deleted object '{}' from S3 bucket '{}'.", key, bucketName);

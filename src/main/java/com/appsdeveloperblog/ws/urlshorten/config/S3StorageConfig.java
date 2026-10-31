@@ -87,10 +87,7 @@ public class S3StorageConfig {
 
         try {
           s3Client.putBucketPolicy(
-              PutBucketPolicyRequest.builder()
-                  .bucket(bucketName)
-                  .policy(readOnlyPolicy)
-                  .build());
+              PutBucketPolicyRequest.builder().bucket(bucketName).policy(readOnlyPolicy).build());
           log.info("Public read policy applied to bucket '{}'.", bucketName);
         } catch (Exception e) {
           log.warn("Could not apply bucket policy to '{}': {}", bucketName, e.getMessage());

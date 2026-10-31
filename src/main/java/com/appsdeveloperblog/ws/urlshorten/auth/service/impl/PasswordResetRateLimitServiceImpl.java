@@ -2,12 +2,12 @@ package com.appsdeveloperblog.ws.urlshorten.auth.service.impl;
 
 import com.appsdeveloperblog.ws.urlshorten.auth.exception.ExceedRateLimitException;
 import com.appsdeveloperblog.ws.urlshorten.auth.service.PasswordResetRateLimitService;
+import jakarta.servlet.http.HttpServletRequest;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.util.HexFormat;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -76,8 +76,7 @@ public class PasswordResetRateLimitServiceImpl implements PasswordResetRateLimit
   private String sha256(String value) {
     try {
       byte[] digest =
-          MessageDigest.getInstance("SHA-256")
-              .digest(value.getBytes(StandardCharsets.UTF_8));
+          MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8));
       return HexFormat.of().formatHex(digest);
     } catch (NoSuchAlgorithmException exception) {
       throw new IllegalStateException("SHA-256 is not available.", exception);

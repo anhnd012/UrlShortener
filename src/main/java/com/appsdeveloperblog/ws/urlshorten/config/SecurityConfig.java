@@ -43,9 +43,16 @@ public class SecurityConfig {
             UsernamePasswordAuthenticationFilter.class)
         .authorizeHttpRequests(
             auth ->
-                auth.requestMatchers(HttpMethod.POST, "/admins")
+                auth.requestMatchers(HttpMethod.GET, "/urls/{shortCode}")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.POST, "/admins")
                     .hasRole("SUPER_ADMIN")
-                    .requestMatchers("/urls/**", "/api/v1/workplaces/**", "/workplaces/**", "/users/**")
+                    .requestMatchers(
+                        "/urls/**",
+                        "/api/v1/urls/**",
+                        "/api/v1/workplaces/**",
+                        "/workplaces/**",
+                        "/users/**")
                     .authenticated()
                     .anyRequest()
                     .permitAll())

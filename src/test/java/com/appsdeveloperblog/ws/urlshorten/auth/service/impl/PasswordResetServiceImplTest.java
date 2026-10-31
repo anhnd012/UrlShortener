@@ -72,15 +72,15 @@ class PasswordResetServiceImplTest {
     passwordResetService.requestReset(request, httpServletRequest);
 
     verify(rateLimitService).checkAndRecord(httpServletRequest, "user@example.com");
-    verify(emailSender).send("user@example.com", "http://localhost:5173/reset-password#token=raw-token");
+    verify(emailSender)
+        .send("user@example.com", "http://localhost:5173/reset-password#token=raw-token");
   }
 
   @Test
   void doesNotRevealOrSendAnythingForUnknownUser() {
     ForgotPasswordRequest request = new ForgotPasswordRequest();
     request.setEmail("unknown@example.com");
-    when(userRepository.findByEmailIgnoreCase("unknown@example.com"))
-        .thenReturn(Optional.empty());
+    when(userRepository.findByEmailIgnoreCase("unknown@example.com")).thenReturn(Optional.empty());
 
     passwordResetService.requestReset(request, new MockHttpServletRequest());
 

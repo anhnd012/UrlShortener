@@ -2,6 +2,10 @@ package com.appsdeveloperblog.ws.urlshorten.workplace.service.impl;
 
 import com.appsdeveloperblog.ws.urlshorten.auth.model.entity.User;
 import com.appsdeveloperblog.ws.urlshorten.auth.repository.UserRepository;
+import com.appsdeveloperblog.ws.urlshorten.url.entity.ShortUrl;
+import com.appsdeveloperblog.ws.urlshorten.url.mapper.ShortUrlMapper;
+import com.appsdeveloperblog.ws.urlshorten.url.model.response.UrlResponse;
+import com.appsdeveloperblog.ws.urlshorten.url.repository.UrlRepository;
 import com.appsdeveloperblog.ws.urlshorten.workplace.exception.MemberAlreadyExistsException;
 import com.appsdeveloperblog.ws.urlshorten.workplace.exception.WorkplaceNotFoundException;
 import com.appsdeveloperblog.ws.urlshorten.workplace.model.dto.request.CreateWorkplaceRequest;
@@ -23,11 +27,6 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import com.appsdeveloperblog.ws.urlshorten.url.entity.ShortUrl;
-import com.appsdeveloperblog.ws.urlshorten.url.mapper.ShortUrlMapper;
-import com.appsdeveloperblog.ws.urlshorten.url.model.response.UrlResponse;
-import com.appsdeveloperblog.ws.urlshorten.url.repository.UrlRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -61,7 +60,9 @@ public class WorkplaceServiceImpl implements WorkplaceService {
     Workplace workplace =
         workplaceRepository
             .findByIdWithMembers(id)
-            .orElseThrow(() -> new WorkplaceNotFoundException("Workplace with id " + id + " was not found."));
+            .orElseThrow(
+                () ->
+                    new WorkplaceNotFoundException("Workplace with id " + id + " was not found."));
 
     User currentUser = getCurrentOrCreateDefaultUser();
 
@@ -72,8 +73,12 @@ public class WorkplaceServiceImpl implements WorkplaceService {
                     WorkplaceMemberResponse.builder()
                         .email(m.getUser() != null ? m.getUser().getEmail() : "unknown")
                         .name(m.getUser() != null ? m.getUser().getName() : null)
-                        .role(m.getRole() != null ? m.getRole().name().toLowerCase() : "participant")
-                        .joinedAt(m.getCreatedAt() != null ? m.getCreatedAt().toString() : Instant.now().toString())
+                        .role(
+                            m.getRole() != null ? m.getRole().name().toLowerCase() : "participant")
+                        .joinedAt(
+                            m.getCreatedAt() != null
+                                ? m.getCreatedAt().toString()
+                                : Instant.now().toString())
                         .build())
             .collect(Collectors.toList());
 
@@ -91,7 +96,10 @@ public class WorkplaceServiceImpl implements WorkplaceService {
         .ownerEmail(workplace.getOwner() != null ? workplace.getOwner().getEmail() : null)
         .membersCount(members.size())
         .linksCount(mappedLinks.size())
-        .createdAt(workplace.getCreatedAt() != null ? workplace.getCreatedAt().toString() : Instant.now().toString())
+        .createdAt(
+            workplace.getCreatedAt() != null
+                ? workplace.getCreatedAt().toString()
+                : Instant.now().toString())
         .members(members)
         .links(mappedLinks)
         .build();
@@ -125,7 +133,10 @@ public class WorkplaceServiceImpl implements WorkplaceService {
     Workplace workplace =
         workplaceRepository
             .findById(workplaceId)
-            .orElseThrow(() -> new WorkplaceNotFoundException("Workplace with id " + workplaceId + " was not found."));
+            .orElseThrow(
+                () ->
+                    new WorkplaceNotFoundException(
+                        "Workplace with id " + workplaceId + " was not found."));
 
     String email = request.getEmail().trim().toLowerCase();
 
@@ -147,13 +158,15 @@ public class WorkplaceServiceImpl implements WorkplaceService {
         workplaceMemberRepository.findByWorkplace_IdAndUser_Id(workplaceId, targetUser.getId());
 
     if (existingMember.isPresent()) {
-      throw new MemberAlreadyExistsException("User " + email + " is already a member of this workplace.");
+      throw new MemberAlreadyExistsException(
+          "User " + email + " is already a member of this workplace.");
     }
 
     WorkplaceMember newMember = new WorkplaceMember();
     newMember.setWorkplace(workplace);
     newMember.setUser(targetUser);
-    newMember.setRole(WorkplaceRole.EMPLOYEE); // Invited member will only be in employee role as requested!
+    newMember.setRole(
+        WorkplaceRole.EMPLOYEE); // Invited member will only be in employee role as requested!
 
     WorkplaceMember savedMember = workplaceMemberRepository.saveAndFlush(newMember);
 
@@ -161,7 +174,10 @@ public class WorkplaceServiceImpl implements WorkplaceService {
         .email(targetUser.getEmail())
         .name(targetUser.getName())
         .role(WorkplaceRole.EMPLOYEE.name().toLowerCase())
-        .joinedAt(savedMember.getCreatedAt() != null ? savedMember.getCreatedAt().toString() : Instant.now().toString())
+        .joinedAt(
+            savedMember.getCreatedAt() != null
+                ? savedMember.getCreatedAt().toString()
+                : Instant.now().toString())
         .build();
   }
 
@@ -178,7 +194,10 @@ public class WorkplaceServiceImpl implements WorkplaceService {
         .ownerEmail(workplace.getOwner() != null ? workplace.getOwner().getEmail() : null)
         .membersCount(membersCount)
         .linksCount(linksCount)
-        .createdAt(workplace.getCreatedAt() != null ? workplace.getCreatedAt().toString() : Instant.now().toString())
+        .createdAt(
+            workplace.getCreatedAt() != null
+                ? workplace.getCreatedAt().toString()
+                : Instant.now().toString())
         .build();
   }
 
@@ -212,9 +231,7 @@ public class WorkplaceServiceImpl implements WorkplaceService {
   }
 
   private User getCurrentOrCreateDefaultUser() {
-    return userRepository
-        .findAll()
-        .stream()
+    return userRepository.findAll().stream()
         .findFirst()
         .orElseGet(
             () -> {

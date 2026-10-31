@@ -49,8 +49,7 @@ public class WorkplaceController {
 
   @PostMapping({"/{id}/invites", "/{id}/members"})
   public ResponseEntity<WorkplaceMemberResponse> inviteMember(
-      @PathVariable UUID id,
-      @RequestBody @Valid InviteMemberRequest request) {
+      @PathVariable UUID id, @RequestBody @Valid InviteMemberRequest request) {
     WorkplaceMemberResponse response = workplaceService.inviteMember(id, request);
     return ResponseEntity.status(HttpStatus.CREATED).body(response);
   }

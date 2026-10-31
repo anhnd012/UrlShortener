@@ -5,13 +5,12 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
+import java.util.HashSet;
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
-import java.util.HashSet;
-import java.util.Set;
 
 @Entity
 @Builder
@@ -19,19 +18,17 @@ import java.util.Set;
 @NoArgsConstructor
 @Getter
 public class Role extends BaseEntity {
-    private String name;
+  private String name;
 
-    private String key;
+  private String key;
 
-    @ManyToMany
-    @JoinTable(
-            name = "role_authority",
-            joinColumns = @JoinColumn(name = "role_id"),
-            inverseJoinColumns = @JoinColumn(name = "authority_id")
-    )
-    private Set<Authority> authorities = new HashSet<>();
+  @ManyToMany
+  @JoinTable(
+      name = "role_authority",
+      joinColumns = @JoinColumn(name = "role_id"),
+      inverseJoinColumns = @JoinColumn(name = "authority_id"))
+  private Set<Authority> authorities = new HashSet<>();
 
-    @ManyToMany(mappedBy = "roles")
-    private Set<User> users = new HashSet<>();
-
+  @ManyToMany(mappedBy = "roles")
+  private Set<User> users = new HashSet<>();
 }

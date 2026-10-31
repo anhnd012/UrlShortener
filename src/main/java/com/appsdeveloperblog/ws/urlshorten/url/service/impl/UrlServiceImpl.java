@@ -2,7 +2,6 @@ package com.appsdeveloperblog.ws.urlshorten.url.service.impl;
 
 import com.appsdeveloperblog.ws.urlshorten.auth.model.entity.User;
 import com.appsdeveloperblog.ws.urlshorten.auth.repository.UserRepository;
-import com.appsdeveloperblog.ws.urlshorten.auth.service.UserProfileService;
 import com.appsdeveloperblog.ws.urlshorten.url.entity.ShortUrl;
 import com.appsdeveloperblog.ws.urlshorten.url.event.ShortUrlClickedEvent;
 import com.appsdeveloperblog.ws.urlshorten.url.exception.InvalidUrlException;
@@ -18,13 +17,14 @@ import com.appsdeveloperblog.ws.urlshorten.url.repository.UrlRepository;
 import com.appsdeveloperblog.ws.urlshorten.url.service.RedirectCacheService;
 import com.appsdeveloperblog.ws.urlshorten.url.service.UrlService;
 import com.appsdeveloperblog.ws.urlshorten.url.util.ShortUrlUtil;
+import com.appsdeveloperblog.ws.urlshorten.workplace.model.entity.Workplace;
+import com.appsdeveloperblog.ws.urlshorten.workplace.repository.WorkplaceRepository;
 import java.net.URI;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -33,9 +33,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-
-import com.appsdeveloperblog.ws.urlshorten.workplace.model.entity.Workplace;
-import com.appsdeveloperblog.ws.urlshorten.workplace.repository.WorkplaceRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -62,7 +59,8 @@ public class UrlServiceImpl implements UrlService {
       User currentUser = userRepository.findById(userId).orElse(null);
       Workplace currentWorkplace = workplaceRepository.findById(workplaceId).orElse(null);
       try {
-        ShortUrl entity = buildShortUrlEntity(shortCode, normalizedLongUrl, currentWorkplace, currentUser);
+        ShortUrl entity =
+            buildShortUrlEntity(shortCode, normalizedLongUrl, currentWorkplace, currentUser);
         String shortUrl = ShortUrlUtil.buildShortUrl(baseUrl, shortCode);
         urlRepository.saveAndFlush(entity);
 
@@ -118,7 +116,8 @@ public class UrlServiceImpl implements UrlService {
     return sb.toString();
   }
 
-  private ShortUrl buildShortUrlEntity(String shortCode, String normalizedLongUrl, Workplace workplace, User currentUser) {
+  private ShortUrl buildShortUrlEntity(
+      String shortCode, String normalizedLongUrl, Workplace workplace, User currentUser) {
     Instant now = Instant.now();
     Instant expiresAt = now.plus(30, ChronoUnit.DAYS);
 
@@ -133,13 +132,17 @@ public class UrlServiceImpl implements UrlService {
     entity.setWorkplace(workplace);
     return entity;
   }
+
   // 1. Naming và purpose: Hàm này có tên mơ hồ chung chung (không thể hiện resource trả về)
   // bản chất hàm này là làm sạch url rồi kiểm tra nó có valid hay không thôi
   // Tên mình đề xuất validateNormalizedLongUrl()
-  // 2. Interface và parameter: (parameter thì chỉ có 1 biến (ổn) nhưng thực chất nó chỉ lấy mỗi longUrl thay vì tất cả properties trong object
+  // 2. Interface và parameter: (parameter thì chỉ có 1 biến (ổn) nhưng thực chất nó chỉ lấy mỗi
+  // longUrl thay vì tất cả properties trong object
   // thế nên lấy ra 1 properties thay vì truyền hẳn 1 object vào
-  // Theo như kiến thức mà bạn nói thì hàm này có mức độ abstraction không đồng đều,sau khi tạo normalize nó còn validate normalize
-  // trong hàm này có 2 lần validate 1 cái cho normalize còn 1 cái validate uri, bạn đánh giá cách handle exception này thế nào
+  // Theo như kiến thức mà bạn nói thì hàm này có mức độ abstraction không đồng đều,sau khi tạo
+  // normalize nó còn validate normalize
+  // trong hàm này có 2 lần validate 1 cái cho normalize còn 1 cái validate uri, bạn đánh giá cách
+  // handle exception này thế nào
   // 3. Defensive programming và xử lý lỗi:
   // + Không có sử dụng biến boolean (tốt)
   // + Parameter không vượt quá 7
@@ -147,19 +150,21 @@ public class UrlServiceImpl implements UrlService {
   // + Xử lý lỗi, mình đang không biết review như thế nào?
   // 4. Control structure and complexity
   // + Nesting level: Không có câu điều kiện hay vòng lặp vượt quá 3
-  // + Điểm quyết định: Ở đây có 2 điểm thôi nhỉ (đoạn  if (normalizedLongUrl.length() > MAX_ALLOWED_CHARACTERS) và if (!isValidUrl(uri))
+  // + Điểm quyết định: Ở đây có 2 điểm thôi nhỉ (đoạn  if (normalizedLongUrl.length() >
+  // MAX_ALLOWED_CHARACTERS) và if (!isValidUrl(uri))
   // + Luồng chính rõ ràng (nominal path): mình đang không biết nên review như thế nào
   // 5. Understanding, code comment and remove unused code
   // + Code comment chưa có
 
   private String getNormalizedLongUrl(String longUrl) {
-    if(!StringUtils.hasLength(longUrl)) {
+    if (!StringUtils.hasLength(longUrl)) {
       throw new InvalidUrlException("Invalid long url: long url must not be empty or null");
     }
     String normalizedLongUrl = normalizeUrl(longUrl);
 
-    if(!isValidUrl(normalizedLongUrl)) {
-      throw new InvalidUrlException("Invalid URL format: Long URL must be a valid HTTP/HTTPS address and under 2048 characters.");
+    if (!isValidUrl(normalizedLongUrl)) {
+      throw new InvalidUrlException(
+          "Invalid URL format: Long URL must be a valid HTTP/HTTPS address and under 2048 characters.");
     }
 
     return normalizedLongUrl;
@@ -167,18 +172,18 @@ public class UrlServiceImpl implements UrlService {
 
   private boolean isValidUrl(String longUrl) {
     if (longUrl.length() > MAX_ALLOWED_CHARACTERS) {
-//      "Exceed valid length: normalized long url exceed maximum allowed characters (2048)."
+      //      "Exceed valid length: normalized long url exceed maximum allowed characters (2048)."
       return false;
     }
 
     try {
       URI uri = URI.create(longUrl);
       if (!isValidUri(uri)) {
-//    "Invalid host url: normalized long url has invalid host."
+        //    "Invalid host url: normalized long url has invalid host."
         return false;
       }
     } catch (IllegalArgumentException e) {
-//     "Uri creation error: cannot create url from normalized long url"
+      //     "Uri creation error: cannot create url from normalized long url"
       return false;
     }
 

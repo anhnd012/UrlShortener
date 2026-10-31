@@ -20,10 +20,14 @@ public class RedisClickSubscriber implements MessageListener {
   public void onMessage(Message message, byte[] pattern) {
     try {
       ClickUpdatedEvent event = objectMapper.readValue(message.getBody(), ClickUpdatedEvent.class);
-      log.info("Received ClickUpdatedEvent from Redis: {}. Forwarding to STOMP /topic/links", event);
+      log.info(
+          "Received ClickUpdatedEvent from Redis: {}. Forwarding to STOMP /topic/links", event);
       messagingTemplate.convertAndSend("/topic/links", event);
     } catch (Exception ex) {
-      log.error("Cannot deserialize ClickUpdatedEvent from message body: " + new String(message.getBody()), ex);
+      log.error(
+          "Cannot deserialize ClickUpdatedEvent from message body: "
+              + new String(message.getBody()),
+          ex);
     }
   }
 }

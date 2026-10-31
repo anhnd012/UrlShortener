@@ -4,7 +4,7 @@ import io.jsonwebtoken.Claims;
 import java.util.UUID;
 
 public interface AccessTokenService {
-    String create(UUID userId);
+  String create(UUID userId);
 
-    Claims verify(String rawToken);
+  Claims verify(String rawToken);
 }

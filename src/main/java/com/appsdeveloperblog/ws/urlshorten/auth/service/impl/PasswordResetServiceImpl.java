@@ -1,7 +1,7 @@
 package com.appsdeveloperblog.ws.urlshorten.auth.service.impl;
 
-import com.appsdeveloperblog.ws.urlshorten.auth.exception.InvalidPasswordResetTokenException;
 import com.appsdeveloperblog.ws.urlshorten.auth.exception.InvalidPasswordException;
+import com.appsdeveloperblog.ws.urlshorten.auth.exception.InvalidPasswordResetTokenException;
 import com.appsdeveloperblog.ws.urlshorten.auth.model.dto.request.ForgotPasswordRequest;
 import com.appsdeveloperblog.ws.urlshorten.auth.model.dto.request.ResetPasswordRequest;
 import com.appsdeveloperblog.ws.urlshorten.auth.model.entity.User;
@@ -67,9 +67,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
     UUID userId = passwordResetTokenService.consumeToken(request.getToken());
 
     User user =
-        userRepository
-            .findById(userId)
-            .orElseThrow(InvalidPasswordResetTokenException::new);
+        userRepository.findById(userId).orElseThrow(InvalidPasswordResetTokenException::new);
     user.setPasswordHash(passwordEncoder.encode(newPassword));
     userRepository.saveAndFlush(user);
 
@@ -88,9 +86,10 @@ public class PasswordResetServiceImpl implements PasswordResetService {
   }
 
   private String buildResetLink(String rawToken) {
-    String baseUrl = frontendBaseUrl.endsWith("/")
-        ? frontendBaseUrl.substring(0, frontendBaseUrl.length() - 1)
-        : frontendBaseUrl;
+    String baseUrl =
+        frontendBaseUrl.endsWith("/")
+            ? frontendBaseUrl.substring(0, frontendBaseUrl.length() - 1)
+            : frontendBaseUrl;
     return baseUrl + RESET_PATH + rawToken;
   }
 

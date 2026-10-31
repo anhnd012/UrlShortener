@@ -11,19 +11,14 @@ import com.appsdeveloperblog.ws.urlshorten.auth.repository.RoleRepository;
 import com.appsdeveloperblog.ws.urlshorten.auth.repository.UserRepository;
 import com.appsdeveloperblog.ws.urlshorten.auth.service.UserService;
 import com.appsdeveloperblog.ws.urlshorten.auth.validation.PasswordPolicy;
-
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -78,15 +73,20 @@ public class UserServiceImpl implements UserService {
 
   @Override
   public List<UserResponse> getUsers(Integer page, Integer size) {
-//    Sort sort = Sort.by(Sort.Direction.DESC, "createdAt");
+    //    Sort sort = Sort.by(Sort.Direction.DESC, "createdAt");
 
     Pageable pageable = PageRequest.of(page, size);
 
-    return userRepository.findAll(pageable)
-            .map(user -> new UserResponse(
+    return userRepository
+        .findAll(pageable)
+        .map(
+            user ->
+                new UserResponse(
                     user.getId(),
                     user.getEmail(),
-                    user.getRoles().stream().map(role -> role.getName()).collect(Collectors.toSet())
-            )).toList();
+                    user.getRoles().stream()
+                        .map(role -> role.getName())
+                        .collect(Collectors.toSet())))
+        .toList();
   }
 }

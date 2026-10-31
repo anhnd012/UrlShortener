@@ -13,25 +13,28 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.security.autoconfigure.web.servlet.SecurityFilterAutoConfiguration;
 import org.springframework.boot.security.autoconfigure.web.servlet.ServletWebSecurityAutoConfiguration;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 @WebMvcTest(AuthenticationController.class)
 @Import(AuthenticationLogoutControllerTest.TestSecurityConfig.class)
-@ImportAutoConfiguration({SecurityFilterAutoConfiguration.class, ServletWebSecurityAutoConfiguration.class})
+@ImportAutoConfiguration({
+  SecurityFilterAutoConfiguration.class,
+  ServletWebSecurityAutoConfiguration.class
+})
 class AuthenticationLogoutControllerTest {
 
   @Autowired private MockMvc mockMvc;
@@ -78,8 +81,7 @@ class AuthenticationLogoutControllerTest {
 
     @Bean
     SecurityFilterChain logoutSecurityFilterChain(HttpSecurity http) throws Exception {
-      http
-          .csrf(csrf -> csrf.disable())
+      http.csrf(csrf -> csrf.disable())
           .authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll())
           .logout(
               logout ->

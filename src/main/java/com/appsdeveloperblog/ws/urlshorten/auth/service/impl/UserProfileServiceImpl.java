@@ -83,7 +83,8 @@ public class UserProfileServiceImpl implements UserProfileService {
         .name(user.getName())
         .displayName(displayName)
         .imageUrl(user.getImageUrl())
-        .createdAt(user.getCreatedAt() != null ? user.getCreatedAt().toString() : Instant.now().toString())
+        .createdAt(
+            user.getCreatedAt() != null ? user.getCreatedAt().toString() : Instant.now().toString())
         .build();
   }
 
@@ -106,7 +107,7 @@ public class UserProfileServiceImpl implements UserProfileService {
   @Override
   public User getCurrentUser() {
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-    if(authentication == null) {
+    if (authentication == null) {
       return null;
     }
 
@@ -115,6 +116,4 @@ public class UserProfileServiceImpl implements UserProfileService {
 
     return currentUser;
   }
-
-
 }

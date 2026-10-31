@@ -15,7 +15,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -29,10 +28,12 @@ public class UrlController {
   private final UrlService urlService;
 
   @PostMapping({"workplaces/{workplaceId}/urls", "/api/v1/urls"})
-  public ResponseEntity createShortUrl(@RequestBody @Valid CreateUrlRequest request,
-                                       @AuthenticationPrincipal AuthenticatedUser principal,
-                                       @PathVariable UUID workplaceId) {
-    CreateUrlResponse response = urlService.createShortUrl(request, principal.getUserId(), workplaceId);
+  public ResponseEntity createShortUrl(
+      @RequestBody @Valid CreateUrlRequest request,
+      @AuthenticationPrincipal AuthenticatedUser principal,
+      @PathVariable UUID workplaceId) {
+    CreateUrlResponse response =
+        urlService.createShortUrl(request, principal.getUserId(), workplaceId);
     return new ResponseEntity(response, HttpStatus.CREATED);
   }
 

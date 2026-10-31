@@ -1,21 +1,19 @@
 package com.appsdeveloperblog.ws.urlshorten.auth.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import com.appsdeveloperblog.ws.urlshorten.auth.exception.ExceedRateLimitException;
 import com.appsdeveloperblog.ws.urlshorten.auth.exception.InvalidPasswordException;
+import com.appsdeveloperblog.ws.urlshorten.auth.model.dto.AuthenticatedUser;
 import com.appsdeveloperblog.ws.urlshorten.auth.model.dto.request.SignInRequest;
 import com.appsdeveloperblog.ws.urlshorten.auth.repository.UserRepository;
 import com.appsdeveloperblog.ws.urlshorten.auth.service.AccessTokenService;
@@ -25,15 +23,22 @@ import com.appsdeveloperblog.ws.urlshorten.auth.service.SignInRateLimitService;
 import com.appsdeveloperblog.ws.urlshorten.auth.service.SignUpRateLimitService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.context.SecurityContextRepository;
+import org.springframework.test.util.ReflectionTestUtils;
 
 class AuthenticationServiceImplTest {
   private UserRepository userRepository;
@@ -67,10 +72,10 @@ class AuthenticationServiceImplTest {
             signInRateLimitService,
             authenticationManager,
             securityContextRepository,
-                accessTokenService,
-                passwordResetTokenService,
-                redisService
-                );
+            accessTokenService,
+            passwordResetTokenService,
+            redisService);
+    ReflectionTestUtils.setField(authenticationService, "refreshTokenExpiration", 900L);
   }
 
   @AfterEach
@@ -88,8 +93,7 @@ class AuthenticationServiceImplTest {
   void rejectsPasswordOutsideTheLengthLimits() {
     InvalidPasswordException tooShort =
         assertThrows(
-            InvalidPasswordException.class,
-            () -> authenticationService.validatePassword("short"));
+            InvalidPasswordException.class, () -> authenticationService.validatePassword("short"));
 
     assertTrue(tooShort.getViolations().stream().anyMatch(message -> message.contains("12")));
 
@@ -110,19 +114,23 @@ class AuthenticationServiceImplTest {
   }
 
   @Test
-  void authenticatesAndSavesSecurityContextAfterSuccessfulSignIn() {
+  void successfulSignInNormalizesEmailAndReturnsTokensWithoutSavingASession() {
     SignInRequest request = new SignInRequest();
-    request.setEmail("user@example.com");
+    request.setEmail(" User@Example.com ");
     request.setPassword("correct-password");
 
     HttpServletRequest httpServletRequest = mock(HttpServletRequest.class);
     HttpServletResponse httpServletResponse = mock(HttpServletResponse.class);
     Authentication authenticated = mock(Authentication.class);
+    UUID userId = UUID.randomUUID();
+    when(authenticated.getPrincipal())
+        .thenReturn(new AuthenticatedUser(userId, "user@example.com", "hash", List.of()));
     when(authenticationManager.authenticate(any())).thenReturn(authenticated);
+    when(accessTokenService.create(userId)).thenReturn("access-token");
+    when(passwordResetTokenService.createRandomRefreshToken()).thenReturn("refresh-token");
 
-    authenticationService.signIn(request, httpServletRequest, httpServletResponse);
+    var response = authenticationService.signIn(request, httpServletRequest, httpServletResponse);
 
-    verify(signInRateLimitService).checkIpRateLimit(httpServletRequest);
     verify(authenticationManager)
         .authenticate(
             argThat(
@@ -130,17 +138,16 @@ class AuthenticationServiceImplTest {
                     "user@example.com".equals(authenticationRequest.getPrincipal())
                         && "correct-password".equals(authenticationRequest.getCredentials())
                         && !authenticationRequest.isAuthenticated()));
-    assertSame(authenticated, SecurityContextHolder.getContext().getAuthentication());
-    verify(signInRateLimitService, never()).recordFailedAuthentication(httpServletRequest);
-    verify(securityContextRepository)
-        .saveContext(
-            argThat(context -> context.getAuthentication() == authenticated),
-            same(httpServletRequest),
-            same(httpServletResponse));
+    assertEquals("access-token", response.getAccessToken());
+    assertEquals("refresh-token", response.getRefreshToken());
+    verify(accessTokenService).create(userId);
+    verify(redisService).saveRefreshToken("refresh-token", 900L);
+    assertNull(SecurityContextHolder.getContext().getAuthentication());
+    verifyNoInteractions(securityContextRepository);
   }
 
   @Test
-  void recordsFailedAuthenticationAndReturnsGenericError() {
+  void invalidCredentialsReturnGenericErrorWithoutIssuingOrSavingTokens() {
     SignInRequest request = new SignInRequest();
     request.setEmail("user@example.com");
     request.setPassword("wrong-password");
@@ -154,44 +161,43 @@ class AuthenticationServiceImplTest {
         com.appsdeveloperblog.ws.urlshorten.auth.exception.AuthenticationException.class,
         () -> authenticationService.signIn(request, httpServletRequest, httpServletResponse));
 
-    verify(signInRateLimitService).checkIpRateLimit(httpServletRequest);
-    verify(signInRateLimitService).recordFailedAuthentication(httpServletRequest);
-    verify(securityContextRepository, never())
-        .saveContext(any(), same(httpServletRequest), same(httpServletResponse));
+    assertNull(SecurityContextHolder.getContext().getAuthentication());
+    verifyNoInteractions(
+        accessTokenService, passwordResetTokenService, redisService, securityContextRepository);
   }
 
-  @Test
-  void rejectsRequestBeforeAuthenticationWhenIpRateLimitIsExceeded() {
-    SignInRequest request = new SignInRequest();
-    request.setEmail("user@example.com");
-    request.setPassword("correct-password");
-
-    HttpServletRequest httpServletRequest = mock(HttpServletRequest.class);
-    HttpServletResponse httpServletResponse = mock(HttpServletResponse.class);
-    doThrow(new ExceedRateLimitException("Ip rate limit exceeded"))
-        .when(signInRateLimitService)
-        .checkIpRateLimit(httpServletRequest);
-
-    assertThrows(
-        ExceedRateLimitException.class,
-        () -> authenticationService.signIn(request, httpServletRequest, httpServletResponse));
-
-    verifyNoInteractions(authenticationManager, securityContextRepository);
-    verify(signInRateLimitService, never()).recordFailedAuthentication(httpServletRequest);
-  }
-
-  @Test
-  void rejectsBlankSignInRequestBeforeAuthentication() {
-    SignInRequest request = new SignInRequest();
-    request.setEmail(" ");
-    request.setPassword("password");
-
+  @ParameterizedTest
+  @MethodSource("invalidSignInRequests")
+  void rejectsInvalidSignInRequestBeforeAuthentication(SignInRequest request) {
     assertThrows(
         IllegalArgumentException.class,
         () ->
             authenticationService.signIn(
                 request, mock(HttpServletRequest.class), mock(HttpServletResponse.class)));
 
-    verifyNoInteractions(authenticationManager, securityContextRepository, signInRateLimitService);
+    verifyNoInteractions(
+        authenticationManager,
+        securityContextRepository,
+        signInRateLimitService,
+        accessTokenService,
+        passwordResetTokenService,
+        redisService);
+  }
+
+  private static Stream<Arguments> invalidSignInRequests() {
+    return Stream.of(
+        Arguments.of((SignInRequest) null),
+        Arguments.of(signInRequest(null, "password")),
+        Arguments.of(signInRequest(" ", "password")),
+        Arguments.of(signInRequest("user@example.com", null)),
+        Arguments.of(signInRequest("user@example.com", "")),
+        Arguments.of(signInRequest("user@example.com", " ")));
+  }
+
+  private static SignInRequest signInRequest(String email, String password) {
+    SignInRequest request = new SignInRequest();
+    request.setEmail(email);
+    request.setPassword(password);
+    return request;
   }
 }

@@ -54,7 +54,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class AdminControllerTest {
   private static final String REQUEST =
       """
-      {"username":"admin@example.com","password":"calm river under a silver moon"}
+      {"email":"admin@example.com","password":"calm river under a silver moon"}
       """;
 
   @Autowired private MockMvc mvc;
@@ -162,7 +162,7 @@ class AdminControllerTest {
             post("/admins")
                 .header("Authorization", "Bearer valid-token")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"username\":\"not-an-email\",\"password\":\"test\"}"))
+                .content("{\"email\":\"not-an-email\",\"password\":\"test\"}"))
         .andExpect(status().isBadRequest());
     verifyNoInteractions(userService);
   }
@@ -178,6 +178,20 @@ class AdminControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(REQUEST))
         .andExpect(status().isBadRequest());
+    verify(userService).createAdmin(any());
+  }
+
+  @Test
+  void legacyUsernameFieldDoesNotReplaceRequiredEmail() throws Exception {
+    authenticate("SUPER_ADMIN");
+    mvc.perform(
+            post("/admins")
+                .header("Authorization", "Bearer valid-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    "{\"username\":\"admin@example.com\",\"password\":\"calm river under a silver moon\"}"))
+        .andExpect(status().isBadRequest());
+    verifyNoInteractions(userService);
   }
 
   @Test

@@ -8,7 +8,9 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @Service
 @ConditionalOnProperty(
-    name = "app.auth.password-reset.email-mode", havingValue = "log", matchIfMissing = true)
+    name = "app.auth.password-reset.email-mode",
+    havingValue = "log",
+    matchIfMissing = true)
 public class LoggingPasswordResetEmailSender implements PasswordResetEmailSender {
 
   @Override

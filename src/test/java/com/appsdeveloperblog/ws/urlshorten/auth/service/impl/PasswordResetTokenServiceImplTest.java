@@ -46,7 +46,8 @@ class PasswordResetTokenServiceImplTest {
     assertEquals(43, rawToken.length());
     assertTrue(rawToken.matches("[A-Za-z0-9_-]+"));
     verify(valueOperations)
-        .set(eq(tokenService.buildKey(rawToken)), eq(userId.toString()), eq(Duration.ofMinutes(15)));
+        .set(
+            eq(tokenService.buildKey(rawToken)), eq(userId.toString()), eq(Duration.ofMinutes(15)));
   }
 
   @Test

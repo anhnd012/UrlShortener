@@ -1,5 +1,6 @@
 package com.appsdeveloperblog.ws.urlshorten.url;
 
+import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -11,10 +12,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.appsdeveloperblog.ws.urlshorten.auth.model.entity.User;
+import com.appsdeveloperblog.ws.urlshorten.auth.repository.UserRepository;
+import com.appsdeveloperblog.ws.urlshorten.auth.service.AccessTokenService;
+import com.appsdeveloperblog.ws.urlshorten.support.IntegrationContainersConfig;
 import com.appsdeveloperblog.ws.urlshorten.url.entity.ShortUrl;
 import com.appsdeveloperblog.ws.urlshorten.url.model.enums.UrlStatus;
 import com.appsdeveloperblog.ws.urlshorten.url.repository.UrlRepository;
+import com.appsdeveloperblog.ws.urlshorten.workplace.model.entity.Workplace;
+import com.appsdeveloperblog.ws.urlshorten.workplace.repository.WorkplaceRepository;
 import com.jayway.jsonpath.JsonPath;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import org.apache.kafka.clients.admin.NewTopic;
@@ -26,39 +34,31 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.kafka.config.TopicBuilder;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.kafka.KafkaContainer;
-import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
-@Testcontainers
-@SpringBootTest(properties = "app.base-url=https://short.test")
+@ActiveProfiles("test")
+@Import({IntegrationContainersConfig.class, UrlApplicationIT.KafkaTestConfig.class})
+@SpringBootTest(properties = "spring.kafka.listener.auto-startup=true")
 @AutoConfigureMockMvc
 class UrlApplicationIT {
 
-  @Container @ServiceConnection
-  static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:16-alpine");
-
-  @Container
-  static final KafkaContainer kafka =
-      new KafkaContainer(DockerImageName.parse("apache/kafka-native:3.8.0"));
-
-  @DynamicPropertySource
-  static void registerKafkaProperties(DynamicPropertyRegistry registry) {
-    registry.add("spring.kafka.bootstrap-servers", kafka::getBootstrapServers);
-  }
-
   @TestConfiguration(proxyBeanMethods = false)
   static class KafkaTestConfig {
+
+    @Bean
+    @ServiceConnection
+    KafkaContainer kafka() {
+      return new KafkaContainer(DockerImageName.parse("apache/kafka-native:3.8.0"));
+    }
 
     @Bean
     NewTopic shortUrlClickedTopic() {
@@ -68,10 +68,33 @@ class UrlApplicationIT {
 
   @Autowired private MockMvc mockMvc;
   @Autowired private UrlRepository urlRepository;
+  @Autowired private UserRepository users;
+  @Autowired private WorkplaceRepository workplaces;
+  @Autowired private AccessTokenService accessTokens;
+
+  private User owner;
+  private Workplace workplace;
+  private String authorization;
 
   @BeforeEach
   void cleanDatabase() {
-    urlRepository.deleteAll();
+    urlRepository.deleteAllInBatch();
+    workplaces.deleteAllInBatch();
+    owner =
+        users
+            .findByEmail("url-owner@example.test")
+            .orElseGet(
+                () -> {
+                  User user = new User();
+                  user.setEmail("url-owner@example.test");
+                  user.setPasswordHash("test-only-hash");
+                  return users.saveAndFlush(user);
+                });
+    workplace = new Workplace();
+    workplace.setName("Regression tests");
+    workplace.setOwner(owner);
+    workplace = workplaces.saveAndFlush(workplace);
+    authorization = "Bearer " + accessTokens.create(owner.getId());
   }
 
   @Test
@@ -81,7 +104,8 @@ class UrlApplicationIT {
     MvcResult result =
         mockMvc
             .perform(
-                post("/urls")
+                post("/workplaces/{workplaceId}/urls", workplace.getId())
+                    .header(HttpHeaders.AUTHORIZATION, authorization)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("{\"longUrl\":\"%s\"}".formatted(longUrl)))
             .andExpect(status().isCreated())
@@ -105,6 +129,8 @@ class UrlApplicationIT {
         () -> assertNotNull(persisted),
         () -> assertEquals(longUrl, persisted.getLongUrl()),
         () -> assertEquals(UrlStatus.ACTIVE, persisted.getStatus()),
+        () -> assertEquals(owner.getId(), persisted.getOwner().getId()),
+        () -> assertEquals(workplace.getId(), persisted.getWorkplace().getId()),
         () ->
             assertTrue(
                 Math.abs(ChronoUnit.NANOS.between(validFrom, persisted.getValidFrom())) <= 1_000),
@@ -117,6 +143,11 @@ class UrlApplicationIT {
         .perform(get("/urls/{shortCode}", shortCode))
         .andExpect(status().isFound())
         .andExpect(header().string(HttpHeaders.LOCATION, longUrl));
+
+    await()
+        .atMost(Duration.ofSeconds(15))
+        .untilAsserted(
+            () -> assertEquals(1L, urlRepository.getByShortCode(shortCode).getNumberOfClicks()));
   }
 
   @Test
@@ -124,7 +155,8 @@ class UrlApplicationIT {
     MvcResult result =
         mockMvc
             .perform(
-                post("/urls")
+                post("/workplaces/{workplaceId}/urls", workplace.getId())
+                    .header(HttpHeaders.AUTHORIZATION, authorization)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("{\"longUrl\":\"example.com/articles/testing\"}"))
             .andExpect(status().isCreated())
@@ -141,12 +173,16 @@ class UrlApplicationIT {
   void invalidCreateRequestsReturnBadRequestWithoutPersisting() throws Exception {
     mockMvc
         .perform(
-            post("/urls").contentType(MediaType.APPLICATION_JSON).content("{\"longUrl\":\"\"}"))
+            post("/workplaces/{workplaceId}/urls", workplace.getId())
+                .header(HttpHeaders.AUTHORIZATION, authorization)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"longUrl\":\"\"}"))
         .andExpect(status().isBadRequest());
 
     mockMvc
         .perform(
-            post("/urls")
+            post("/workplaces/{workplaceId}/urls", workplace.getId())
+                .header(HttpHeaders.AUTHORIZATION, authorization)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"longUrl\":\"abc def %%%\"}"))
         .andExpect(status().isBadRequest());
@@ -154,7 +190,8 @@ class UrlApplicationIT {
     String oversizedUrl = "https://example.com/" + "a".repeat(2049);
     mockMvc
         .perform(
-            post("/urls")
+            post("/workplaces/{workplaceId}/urls", workplace.getId())
+                .header(HttpHeaders.AUTHORIZATION, authorization)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"longUrl\":\"%s\"}".formatted(oversizedUrl)))
         .andExpect(status().isBadRequest());
@@ -180,6 +217,17 @@ class UrlApplicationIT {
   }
 
   @Test
+  void unauthenticatedCreationDoesNotPersistUrl() throws Exception {
+    mockMvc
+        .perform(
+            post("/workplaces/{workplaceId}/urls", workplace.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"longUrl\":\"https://example.com/article\"}"))
+        .andExpect(status().isUnauthorized());
+    assertEquals(0, urlRepository.count());
+  }
+
+  @Test
   void databaseRejectsDuplicateShortCodes() {
     urlRepository.saveAndFlush(
         shortUrl("duplcode", UrlStatus.ACTIVE, Instant.now().plus(1, ChronoUnit.DAYS), 1));
@@ -200,6 +248,8 @@ class UrlApplicationIT {
     shortUrl.setValidFrom(Instant.now());
     shortUrl.setExpiresAt(expiresAt);
     shortUrl.setNumberOfClicks(numberOfClicks);
+    shortUrl.setOwner(owner);
+    shortUrl.setWorkplace(workplace);
     return shortUrl;
   }
 }

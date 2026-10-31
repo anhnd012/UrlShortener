@@ -7,10 +7,10 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.HexFormat;
 import java.util.UUID;
-import java.time.Duration;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -39,9 +39,7 @@ public class PasswordResetTokenServiceImpl implements PasswordResetTokenService 
     SECURE_RANDOM.nextBytes(randomBytes);
     String rawToken = Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes);
 
-    redisTemplate
-        .opsForValue()
-        .set(buildKey(rawToken), user.getId().toString(), tokenTtl);
+    redisTemplate.opsForValue().set(buildKey(rawToken), user.getId().toString(), tokenTtl);
 
     return rawToken;
   }
@@ -71,8 +69,7 @@ public class PasswordResetTokenServiceImpl implements PasswordResetTokenService 
   private String sha256(String value) {
     try {
       byte[] digest =
-          MessageDigest.getInstance("SHA-256")
-              .digest(value.getBytes(StandardCharsets.UTF_8));
+          MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8));
       return HexFormat.of().formatHex(digest);
     } catch (NoSuchAlgorithmException exception) {
       throw new IllegalStateException("SHA-256 is not available.", exception);
@@ -84,8 +81,6 @@ public class PasswordResetTokenServiceImpl implements PasswordResetTokenService 
     byte[] bytes = new byte[32];
     SECURE_RANDOM.nextBytes(bytes);
 
-    return Base64.getUrlEncoder()
-            .withoutPadding()
-            .encodeToString(bytes);
+    return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
   }
 }

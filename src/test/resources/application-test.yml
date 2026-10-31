@@ -1,0 +1,50 @@
+spring:
+  session:
+    timeout: 30m
+    data:
+      redis:
+        namespace: regression-tests:sessions
+        repository-type: indexed
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  kafka:
+    listener:
+      auto-startup: false
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
+    consumer:
+      group-id: regression-tests
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JacksonJsonDeserializer
+      properties:
+        spring.json.trusted.packages: com.appsdeveloperblog.ws.urlshorten.url.event
+
+app:
+  base-url: https://short.test
+  frontend-base-url: https://frontend.test
+  cache:
+    redirect-ttl: 30m
+  kafka:
+    topics:
+      short-url-clicked: short-url-clicked
+  redis:
+    click-channel: regression-tests:click-updated
+    sign-up-email-rate-limit-hour: 1
+    sign-up-email-rate-limit: 3
+    sign-up-ip-rate-limit: 5
+    sign-up-ip-rate-limit-minutes: 10
+    sign-in-ip-rate-limit: 5
+    sign-in-ip-rate-limit-minutes: 30
+  jwt:
+    # Fixed signing key for isolated tests only.
+    secret-base64: dGVzdC1vbmx5LWp3dC1zaWduaW5nLWtleS1mb3ItcmVncmVzc2lvbi10ZXN0cw==
+    acc_token_expiration: 900
+    refresh_token_expiration: 86400
+    issuer: regression-tests
+    audience: url-shortener-test
+
+SUPER_ADMIN_EMAIL: bootstrap@example.test
+SUPER_ADMIN_PASSWORD: test-only-bootstrap-password
