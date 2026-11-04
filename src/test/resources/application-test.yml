@@ -38,6 +38,16 @@ app:
     sign-up-ip-rate-limit-minutes: 10
     sign-in-ip-rate-limit: 5
     sign-in-ip-rate-limit-minutes: 30
+  s3:
+    # Synthetic settings for Spring context startup; real AWS access is tested separately.
+    endpoint: http://s3.invalid
+    access-key: test-access-key
+    secret-key: test-secret-key
+    bucket-name: regression-tests-avatars
+    region: us-east-1
+    force-path-style: true
+    initialize-bucket: false
+    public-read: false
   jwt:
     # Fixed signing key for isolated tests only.
     secret-base64: dGVzdC1vbmx5LWp3dC1zaWduaW5nLWtleS1mb3ItcmVncmVzc2lvbi10ZXN0cw==
