@@ -49,4 +49,20 @@ public interface UrlRepository extends JpaRepository<ShortUrl, UUID> {
     ORDER BY s.createdAt DESC
     """)
   Page<ShortUrl> getValidShortUrls(@Param("now") Instant now, Pageable pageable);
+
+  @Query("SELECT s FROM ShortUrl s WHERE s.workplace.id = :workplaceId ORDER BY s.createdAt DESC")
+  java.util.List<ShortUrl> findAllByWorkplaceId(@Param("workplaceId") UUID workplaceId);
+
+  @Query("SELECT COUNT(s) FROM ShortUrl s WHERE s.workplace.id = :workplaceId")
+  int countByWorkplaceId(@Param("workplaceId") UUID workplaceId);
+
+  @Modifying
+  @Query(
+      """
+      UPDATE ShortUrl s
+      SET s.status = com.appsdeveloperblog.ws.urlshorten.url.model.enums.UrlStatus.EXPIRED
+      WHERE s.status = com.appsdeveloperblog.ws.urlshorten.url.model.enums.UrlStatus.ACTIVE
+      AND s.expiresAt <= :now
+      """)
+  int expireOutdatedUrls(@Param("now") Instant now);
 }

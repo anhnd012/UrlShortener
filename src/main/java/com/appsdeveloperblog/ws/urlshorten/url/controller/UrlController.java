@@ -1,5 +1,6 @@
 package com.appsdeveloperblog.ws.urlshorten.url.controller;
 
+import com.appsdeveloperblog.ws.urlshorten.auth.model.dto.AuthenticatedUser;
 import com.appsdeveloperblog.ws.urlshorten.url.model.request.CreateUrlRequest;
 import com.appsdeveloperblog.ws.urlshorten.url.model.response.CreateUrlResponse;
 import com.appsdeveloperblog.ws.urlshorten.url.model.response.ListUrlResponse;
@@ -13,7 +14,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,14 +23,17 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@Validated
 @RequiredArgsConstructor
 public class UrlController {
   private final UrlService urlService;
 
-  @PostMapping({"/urls", "/api/v1/urls"})
-  public ResponseEntity createShortUrl(@RequestBody @Valid CreateUrlRequest request) {
-    CreateUrlResponse response = urlService.createShortUrl(request);
+  @PostMapping({"workplaces/{workplaceId}/urls", "/api/v1/urls"})
+  public ResponseEntity createShortUrl(
+      @RequestBody @Valid CreateUrlRequest request,
+      @AuthenticationPrincipal AuthenticatedUser principal,
+      @PathVariable UUID workplaceId) {
+    CreateUrlResponse response =
+        urlService.createShortUrl(request, principal.getUserId(), workplaceId);
     return new ResponseEntity(response, HttpStatus.CREATED);
   }
 
@@ -37,7 +41,7 @@ public class UrlController {
   public ResponseEntity<Void> redirectShortUrl(
       @PathVariable @NotBlank @Size(min = 8, max = 8) String shortCode) {
     return urlService
-        .redirectShortUrl(shortCode)
+        .getValidLongUrl(shortCode)
         .map(
             longUrl ->
                 ResponseEntity.status(HttpStatus.FOUND).location(URI.create(longUrl)).<Void>build())

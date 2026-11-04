@@ -8,11 +8,13 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface UrlService {
-  CreateUrlResponse createShortUrl(CreateUrlRequest request);
+  CreateUrlResponse createShortUrl(CreateUrlRequest request, UUID userId, UUID workplaceId);
 
-  Optional<String> redirectShortUrl(String shortCode);
+  Optional<String> getValidLongUrl(String shortCode);
 
   ShortUrlAnalyticResponse getAnalyticShortUrl(UUID urlId);
 
   ListUrlResponse getValidShortUrls(Integer pageNumber, Integer pageSize);
+
+  int expireOutdatedUrls();
 }

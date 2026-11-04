@@ -7,7 +7,6 @@ import org.springframework.data.redis.connection.Message;
 import org.springframework.data.redis.connection.MessageListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
-import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
 @Component
@@ -21,11 +20,14 @@ public class RedisClickSubscriber implements MessageListener {
   public void onMessage(Message message, byte[] pattern) {
     try {
       ClickUpdatedEvent event = objectMapper.readValue(message.getBody(), ClickUpdatedEvent.class);
-
+      log.info(
+          "Received ClickUpdatedEvent from Redis: {}. Forwarding to STOMP /topic/links", event);
       messagingTemplate.convertAndSend("/topic/links", event);
-
-    } catch (JacksonException ex) {
-      log.error("Cannot deserialize ClickUpdatedEvent", ex);
+    } catch (Exception ex) {
+      log.error(
+          "Cannot deserialize ClickUpdatedEvent from message body: "
+              + new String(message.getBody()),
+          ex);
     }
   }
 }

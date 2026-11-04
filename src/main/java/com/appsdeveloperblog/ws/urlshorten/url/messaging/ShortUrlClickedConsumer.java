@@ -8,12 +8,12 @@ import com.appsdeveloperblog.ws.urlshorten.url.exception.ShortUrlNotFoundExcepti
 import com.appsdeveloperblog.ws.urlshorten.url.mapper.ShortUrlMapper;
 import com.appsdeveloperblog.ws.urlshorten.url.repository.ProcessedClickEventRepository;
 import com.appsdeveloperblog.ws.urlshorten.url.repository.UrlRepository;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 @Component
 @RequiredArgsConstructor

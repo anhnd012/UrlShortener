@@ -35,3 +35,9 @@ build/
 ### Log ###
 logs/
 *.log
+
+.env
+.env.prod
+
+docs/
+*.md
