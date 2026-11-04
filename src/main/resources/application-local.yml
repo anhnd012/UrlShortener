@@ -5,9 +5,9 @@ spring:
   config:
     import: "optional:file:./.env[.properties]"
   datasource:
-    url: jdbc:postgresql://localhost:5433/db_url_shortener
-    username: admin
-    password: 12345678x@X
+    url: jdbc:postgresql://localhost:5433/${POSTGRES_DB}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
 
   data:
     redis:
@@ -78,17 +78,20 @@ app:
 
   s3:
     endpoint: http://localhost:9000
-    access-key: minioadmin
-    secret-key: miniopassword123
-    bucket-name: url-shortener-avatars
     region: us-east-1
+    bucket-name: url-shortener-avatars
+    access-key: ${S3_ACCESS_KEY}
+    secret-key: ${S3_SECRET_KEY}
+    force-path-style: true
+    initialize-bucket: true
+    public-read: true
 
   scheduler:
     expire-urls-cron: "0 0 0 * * ?"
     lock-at-most-for: 10m
 
   jwt:
-    secret-base64: Y29sdW1ucGlua3NvbGRpZXJnZW50bHlyZW1haW5jYWxtbGl2ZWhhcmJvcmFjY2lkZW4=
+    secret-base64: ${JWT_SECRET_BASE64}
     acc_token_expiration: 900
     refresh_token_expiration: 86400
     issuer: link-flow

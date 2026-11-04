@@ -6,9 +6,9 @@ services:
     container_name: postgres-db
 
     environment:
-      POSTGRES_DB: db_url_shortener
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: 12345678x@X
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
 
     ports:
       - "5433:5432"
@@ -17,7 +17,7 @@ services:
       - postgres-data:/var/lib/postgresql/data
 
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -d db_url_shortener"]
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
       interval: 30s
       timeout: 5s
       retries: 3

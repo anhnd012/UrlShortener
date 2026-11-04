@@ -37,6 +37,7 @@ logs/
 *.log
 
 .env
+.env.prod
 
 docs/
 *.md

@@ -244,6 +244,42 @@ Stop the local dependencies with:
 docker compose down
 ```
 
+## Test AWS S3 from Local
+
+Run commands from `Backend/`. The `prod` profile imports `.env.prod` as a Java
+properties file. Keep `S3_REGION`, `S3_BUCKET`, `AWS_ACCESS_KEY_ID`, and
+`AWS_SECRET_ACCESS_KEY` in that file, with unquoted values. The region must match
+the existing bucket. `.env.prod` is excluded from Git.
+
+Test the configured bucket without starting PostgreSQL, Redis, Kafka, or the web
+server:
+
+```powershell
+.\mvnw.cmd "-Dtest=AwsS3ConnectionSmokeTest" "-Ds3.smoke=true" test
+```
+
+This opt-in test loads `application-prod.yml` and sends an authenticated
+`HeadBucket` request. It requires `s3:ListBucket` on the bucket. It fails if the
+request fails and does not create buckets or change bucket policies. Ordinary
+test runs skip this test and do not contact AWS through it.
+
+Successful bucket access does not verify upload/delete permissions or anonymous
+image access. Avatar uploads also need `s3:PutObject`, and deletes need
+`s3:DeleteObject` on the relevant objects. Private objects need authenticated or
+presigned access before a browser can display them.
+
+Once the other production dependencies are configured, start the full backend:
+
+```powershell
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=prod"
+```
+
+The S3 startup check logs `Successfully connected to S3 bucket` on success, or a
+warning on failure. The standalone smoke test above reports failures as test
+failures even though the full backend allows startup when S3 is unavailable.
+`app.s3.initialize-bucket=false` keeps the existing AWS bucket configuration;
+the local MinIO setup retains its automatic bucket initialization.
+
 ## Database Migrations
 
 Flyway loads migrations from:

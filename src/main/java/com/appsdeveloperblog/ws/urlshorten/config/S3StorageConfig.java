@@ -5,37 +5,45 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
 import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
-import software.amazon.awssdk.services.s3.model.NoSuchBucketException;
 import software.amazon.awssdk.services.s3.model.PutBucketPolicyRequest;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 
 @Slf4j
 @Configuration
 public class S3StorageConfig {
 
   @Getter
-  @Value("${app.s3.endpoint:http://localhost:9000}")
+  @Value("${app.s3.endpoint}")
   private String endpoint;
 
-  @Value("${app.s3.access-key:minioadmin}")
+  @Value("${app.s3.access-key}")
   private String accessKey;
 
-  @Value("${app.s3.secret-key:miniopassword123}")
+  @Value("${app.s3.secret-key}")
   private String secretKey;
 
   @Getter
-  @Value("${app.s3.bucket-name:url-shortener-avatars}")
+  @Value("${app.s3.bucket-name}")
   private String bucketName;
 
-  @Value("${app.s3.region:us-east-1}")
+  @Value("${app.s3.region}")
   private String region;
+
+  @Value("${app.s3.force-path-style:false}")
+  private boolean forcePathStyle;
+
+  @Value("${app.s3.public-read:false}")
+  private boolean publicRead;
 
   @Bean
   public S3Client s3Client() {
@@ -45,56 +53,54 @@ public class S3StorageConfig {
         .endpointOverride(URI.create(endpoint))
         .credentialsProvider(StaticCredentialsProvider.create(credentials))
         .region(Region.of(region))
-        .forcePathStyle(true) // Required for MinIO S3-compatible path-style access
+        .forcePathStyle(forcePathStyle)
         .build();
   }
 
   @Bean
+  @Profile("local")
+  @ConditionalOnProperty(prefix = "app.s3", name = "initialize-bucket", havingValue = "true")
   public ApplicationRunner s3BucketInitializer(S3Client s3Client) {
     return args -> {
       try {
-        boolean bucketExists = true;
-        try {
-          s3Client.headBucket(HeadBucketRequest.builder().bucket(bucketName).build());
-        } catch (NoSuchBucketException ex) {
-          bucketExists = false;
-        } catch (Exception ex) {
-          // If HeadBucket throws S3Exception with 404
-          bucketExists = false;
+        s3Client.headBucket(HeadBucketRequest.builder().bucket(bucketName).build());
+      } catch (S3Exception ex) {
+        if (ex.statusCode() != 404) {
+          throw new IllegalStateException(
+              "Cannot access local MinIO bucket '"
+                  + bucketName
+                  + "'. HTTP status: "
+                  + ex.statusCode(),
+              ex);
         }
 
-        if (!bucketExists) {
-          s3Client.createBucket(CreateBucketRequest.builder().bucket(bucketName).build());
-          log.info("S3 Bucket '{}' created successfully on MinIO.", bucketName);
-        }
+        s3Client.createBucket(CreateBucketRequest.builder().bucket(bucketName).build());
+        log.info("MinIO bucket '{}' created.", bucketName);
+      }
 
-        // Set anonymous read policy so browsers can directly view avatar images
+      if (publicRead) {
         String readOnlyPolicy =
             """
-            {
-              "Version": "2012-10-17",
-              "Statement": [
                 {
-                  "Effect": "Allow",
-                  "Principal": "*",
-                  "Action": ["s3:GetObject"],
-                  "Resource": ["arn:aws:s3:::%s/*"]
+                  "Version": "2012-10-17",
+                  "Statement": [
+                    {
+                      "Effect": "Allow",
+                      "Principal": "*",
+                      "Action": ["s3:GetObject"],
+                      "Resource": ["arn:aws:s3:::%s/*"]
+                    }
+                  ]
                 }
-              ]
-            }
-            """
+                """
                 .formatted(bucketName);
 
-        try {
-          s3Client.putBucketPolicy(
-              PutBucketPolicyRequest.builder().bucket(bucketName).policy(readOnlyPolicy).build());
-          log.info("Public read policy applied to bucket '{}'.", bucketName);
-        } catch (Exception e) {
-          log.warn("Could not apply bucket policy to '{}': {}", bucketName, e.getMessage());
-        }
-      } catch (Exception e) {
-        log.warn("MinIO / S3 initialization skipped or unavailable: {}", e.getMessage());
+        s3Client.putBucketPolicy(
+            PutBucketPolicyRequest.builder().bucket(bucketName).policy(readOnlyPolicy).build());
+        log.info("Anonymous read policy applied to local MinIO bucket '{}'.", bucketName);
       }
+
+      log.info("Local MinIO bucket '{}' is ready.", bucketName);
     };
   }
 }

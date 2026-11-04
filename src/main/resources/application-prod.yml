@@ -3,16 +3,20 @@ server:
 
 spring:
   config:
-    import: "optional:file:./.env[.properties]"
+    import: "optional:file:./.env.prod[.properties]"
   datasource:
-    url: jdbc:postgresql://localhost:5433/db_url_shortener
-    username: admin
-    password: 12345678x@X
+    url: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
 
   data:
     redis:
-      host: localhost
-      port: 6779
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+      username: ${REDIS_USERNAME}
+      password: ${REDIS_PASSWORD}
+      ssl:
+        enabled: true
 
   session:
     timeout: 30m
@@ -27,7 +31,21 @@ spring:
     show-sql: true
 
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${KAFKA_BOOTSTRAP-SERVERS}
+
+    security:
+      protocol: SASL_SSL
+
+    ssl:
+      trust-store-type: PEM
+      trust-store-location: ${KAFKA_CA_LOCATION}
+
+    properties:
+      "[sasl.mechanism]": SCRAM-SHA-256
+      "[sasl.jaas.config]": >-
+        org.apache.kafka.common.security.scram.ScramLoginModule required
+        username="${KAFKA_USERNAME}"
+        password="${KAFKA_PASSWORD}";
 
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
@@ -77,11 +95,14 @@ app:
     password-reset-email-rate-limit-hours: 1
 
   s3:
-    endpoint: http://localhost:9000
-    access-key: minioadmin
-    secret-key: miniopassword123
-    bucket-name: url-shortener-avatars
-    region: us-east-1
+    endpoint: https://s3.${S3_REGION}.amazonaws.com
+    region: ${S3_REGION}
+    bucket-name: ${S3_BUCKET}
+    access-key: ${AWS_ACCESS_KEY_ID}
+    secret-key: ${AWS_SECRET_ACCESS_KEY}
+    force-path-style: false
+    initialize-bucket: false
+    public-read: false
 
   scheduler:
     expire-urls-cron: "0 0 0 * * ?"
