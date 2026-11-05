@@ -3,7 +3,7 @@ services:
     image: ducanh22w2/backend-service:${IMAGE_TAG}
     container_name: backend
     ports:
-      - "8080:8080"
+      - "1122:1122"
     depends_on:
       postgres:
         condition: service_healthy
