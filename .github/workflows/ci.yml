@@ -1,4 +1,4 @@
-name: Verify
+name: Continuous Integration (Maven build, test, verity, docker)
 
 on:
   push:

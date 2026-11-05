@@ -1,0 +1,33 @@
+name: Continuous Deployment Pipeline
+run-name: ${{ github.actor }}
+
+on:
+  workflow_run:
+    workflows:
+      - Continuous Integration (Maven build, test, verity, docker)
+    types:
+      - completed
+    branches:
+      - master
+
+jobs:
+  cd-pipeline:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            echo "Start Deploying EC2..."
+            cd /home/ubuntu
+            sudo sed -i 's/^IMAGE_TAG=.*/IMAGE_TAG=${{ github.event.workflow_run.head_sha }}/' .env.prod
+            sudo docker compose -f docker_compose_production.yml --env-file .env.prod pull backend
+            sudo docker compose -f docker_compose_production.yml --env-file .env.prod up -d --force-recreate backend
+            sudo docker image prune -f
+            echo "Deploy EC2 Successfully!"
